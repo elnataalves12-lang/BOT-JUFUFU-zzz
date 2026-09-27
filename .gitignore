@@ -1,0 +1,16 @@
+node_modules/
+session/
+auth_joe/
+temp/
+cache/
+downloads/
+downloads_music/
+downloads_video/
+musicas/
+
+*.log
+log.txt
+erro.txt
+
+.env
+.env.*

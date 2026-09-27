@@ -1,0 +1,28 @@
+{
+  "name": "jufufu-bot",
+  "version": "3.0.0",
+  "description": "Jufufu Bot - WhatsApp Bot Completo com RPG",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.6.0",
+    "axios": "^1.7.7",
+    "canvas": "^2.11.2",
+    "chalk": "^4.1.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "node-fetch": "^3.3.2",
+    "node-webpmux": "^3.1.0",
+    "pino": "^8.14.1",
+    "sharp": "^0.33.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

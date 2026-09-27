@@ -1,0 +1,27 @@
+{
+  "welcome": {},
+  "welcomeMsg": {},
+  "welcomeSaida": {},
+  "welcomeSaidaMsg": {},
+  "antilink": {},
+  "antilinkBan": {},
+  "mutados": {},
+  "rankAtivo": {},
+  "nivelAtivo": {},
+  "afk": {},
+  "donos": [],
+  "regras": {},
+  "interactionGifs": {
+    "tapa": "",
+    "matar": "",
+    "beijar": "",
+    "abracar": "",
+    "socar": ""
+  },
+  "warning": {},
+  "antiSpam": {},
+  "temporizador": {},
+  "nivelXp": {},
+  "levelConfig": {},
+  "rpg": {}
+}
