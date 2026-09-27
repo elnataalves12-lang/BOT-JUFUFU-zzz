@@ -1,105 +1,18 @@
 // ==================== SISTEMA DE BOAS-VINDAS ====================
 // services/welcome.js
 // ============================================================
+// Método: image: { url: foto } — o Baileys baixa com auth
+// Sem canvas
+// ============================================================
 
-const fetch = require('node-fetch');
-const path = require('path');
-const fs = require('fs');
-const { createCanvas, loadImage } = require('canvas');
-const { generateWAMessageContent, generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
+const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 
-// ==================== CONFIGURAÇÃO ====================
-const BANNER_URL = 'https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1789931108593-u9bx8p.jpg';
-const BANNER_PATH = path.join(process.cwd(), 'assets', 'banner.png');
-const CANAL_LINK_FALLBACK = 'https://whatsapp.com/channel/0029VbDHw0fAO7RBFTJ3rn1e';
+// ==================== IMAGEM PADRÃO ====================
+const IMAGEM_PADRAO = 'https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1790535895199-l9ob00.jpg';
 
-// ==================== CACHE DA PASTA ASSETS ====================
-const ASSETS_DIR = path.join(process.cwd(), 'assets');
-if (!fs.existsSync(ASSETS_DIR)) {
-    fs.mkdirSync(ASSETS_DIR, { recursive: true });
-}
-
-// ==================== CACHE DO BANNER ====================
-let bannerImageCache = null;
-
-async function carregarBanner() {
-    if (bannerImageCache) return bannerImageCache;
-
-    if (!fs.existsSync(BANNER_PATH)) {
-        try {
-            const response = await fetch(BANNER_URL);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-            const buffer = Buffer.from(await response.arrayBuffer());
-            fs.writeFileSync(BANNER_PATH, buffer);
-        } catch (e) {
-            return null;
-        }
-    }
-
-    try {
-        bannerImageCache = await loadImage(BANNER_PATH);
-        return bannerImageCache;
-    } catch (e) {
-        return null;
-    }
-}
-
-// ==================== CACHE DE FOTOS DE PERFIL ====================
-// 🔥 Evita baixar a mesma foto múltiplas vezes
-
-const fotoCache = new Map(); // jid -> { buffer, timestamp }
-const FOTO_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
-function pegarFotoCache(jid) {
-    const item = fotoCache.get(jid);
-    if (!item) return null;
-
-    // Se expirou, remove
-    if (Date.now() - item.timestamp > FOTO_CACHE_TTL) {
-        fotoCache.delete(jid);
-        return null;
-    }
-
-    return item.buffer;
-}
-
-function salvarFotoCache(jid, buffer) {
-    fotoCache.set(jid, {
-        buffer,
-        timestamp: Date.now()
-    });
-
-    // 🔥 Se o cache ficar muito grande, limpa os mais antigos
-    if (fotoCache.size > 100) {
-        const entradas = [...fotoCache.entries()]
-            .sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-        // Remove os 20 mais antigos
-        for (let i = 0; i < 20; i++) {
-            if (entradas[i]) {
-                fotoCache.delete(entradas[i][0]);
-            }
-        }
-    }
-}
-
-// ==================== FOTO PADRÃO ====================
-const IMAGEM_PADRAO = 'https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1788729255779-an5ltq.jpg';
-
+// ==================== MENSAGENS PADRÃO ====================
 const MENSAGEM_ENTRADA_PADRAO = '👋 Seja bem-vindo(a) ao grupo {grupo}!';
 const MENSAGEM_SAIDA_PADRAO = '👋 {nome} saiu do grupo {grupo}!';
-
-// ==================== BAIXAR IMAGEM ====================
-async function baixarImagem(url) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return Buffer.from(await response.arrayBuffer());
-    } catch (error) {
-        return null;
-    }
-}
 
 // ==================== PROCESSAR MENSAGEM ====================
 function processarMensagem(mensagem, nome, grupo) {
@@ -110,87 +23,18 @@ function processarMensagem(mensagem, nome, grupo) {
     return texto;
 }
 
-// ==================== CRIAR BOAS-VINDAS COM CANVAS ====================
-async function criarBoasVindasCanvas(fotoUrl, nomeGrupo, totalMembros) {
-    try {
-        const banner = await carregarBanner();
-        if (!banner) return null;
+// ==================== PEGAR URL DA FOTO ====================
+// 🔥 Método padrão: retorna a URL pra o Baileys baixar
+// Se não tiver foto → retorna a imagem padrão
 
-        const canvas = createCanvas(1280, 720);
-        const ctx = canvas.getContext('2d');
-
-        ctx.drawImage(banner, 0, 0, 1280, 720);
-
-        const circleX = 640;
-        const circleY = 330;
-        const circleRadius = 170;
-
-        try {
-            const fotoBuffer = await baixarImagem(fotoUrl);
-            if (fotoBuffer) {
-                const avatar = await loadImage(fotoBuffer);
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(circleX, circleY, circleRadius, 0, Math.PI * 2);
-                ctx.closePath();
-                ctx.clip();
-
-                ctx.drawImage(
-                    avatar,
-                    circleX - circleRadius,
-                    circleY - circleRadius,
-                    circleRadius * 2,
-                    circleRadius * 2
-                );
-
-                ctx.restore();
-            }
-        } catch (e) {}
-
-        ctx.textAlign = 'center';
-
-        // NOME DO GRUPO
-        ctx.font = 'bold 40px Arial';
-        ctx.fillStyle = '#FFEB3B';
-        ctx.shadowColor = '#000000';
-        ctx.shadowBlur = 10;
-        ctx.fillText(nomeGrupo.slice(0, 30).toUpperCase(), 640, 620);
-        ctx.shadowBlur = 0;
-
-        // TOTAL DE MEMBROS
-        ctx.font = '26px Arial';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.shadowColor = '#000000';
-        ctx.shadowBlur = 8;
-        ctx.fillText(`${totalMembros} MEMBROS`, 640, 655);
-        ctx.shadowBlur = 0;
-
-        return canvas.toBuffer();
-
-    } catch (error) {
-        return null;
-    }
-}
-
-// ==================== PEGAR FOTO (com cache) ====================
-async function pegarFotoParticipante(sock, participantId) {
-    // 🔥 1. Verifica cache primeiro
-    const cache = pegarFotoCache(participantId);
-    if (cache) return cache;
-
-    // 🔥 2. Se não tá no cache, baixa
-    let fotoUrl = IMAGEM_PADRAO;
-
+async function pegarFotoUrl(sock, participantId) {
     try {
         const foto = await sock.profilePictureUrl(participantId, 'image');
-        if (foto) fotoUrl = foto;
-    } catch (e) {}
-
-    // 🔥 3. Salva no cache
-    salvarFotoCache(participantId, fotoUrl);
-
-    return fotoUrl;
+        if (foto) return foto;
+        return IMAGEM_PADRAO;
+    } catch (e) {
+        return IMAGEM_PADRAO;
+    }
 }
 
 // ==================== ENVIAR BOAS-VINDAS ====================
@@ -200,38 +44,44 @@ async function enviarBoasVindas(sock, chat, participant, db, CONFIG) {
 
         const participantId = typeof participant === 'string' ? participant : participant.id;
 
-        // 🔥 PARALELISMO: metadata + foto ao mesmo tempo
+        // 🔥 METADATA + FOTO EM PARALELO
         const [metadata, fotoUrl] = await Promise.all([
             sock.groupMetadata(chat).catch(() => null),
-            pegarFotoParticipante(sock, participantId)
+            pegarFotoUrl(sock, participantId)
         ]);
 
         const grupoNome = metadata?.subject || 'Grupo';
-        const totalMembros = metadata?.participants?.length || 0;
 
-        // 🔥 Cria a imagem (depende da foto, então é sequencial)
-        const imageBuffer = await criarBoasVindasCanvas(fotoUrl, grupoNome, totalMembros);
-
-        // 🔥 Mensagem personalizada
+        // 🔥 MENSAGEM PERSONALIZADA
         const mensagemPersonalizada = db.welcomeMsg?.[chat] || null;
-        const mensagemFinal = mensagemPersonalizada ?
-            processarMensagem(mensagemPersonalizada, 'membro', grupoNome) :
-            processarMensagem(MENSAGEM_ENTRADA_PADRAO, 'membro', grupoNome);
+        const mensagemFinal = mensagemPersonalizada
+            ? processarMensagem(mensagemPersonalizada, 'membro', grupoNome)
+            : processarMensagem(MENSAGEM_ENTRADA_PADRAO, 'membro', grupoNome);
 
         const numeroMencao = participantId.split('@')[0];
 
+        // 🔥 TEXTO
         const texto = `👋 Seja bem-vindo(a) @${numeroMencao}!\n\n${mensagemFinal}\n\n『 ${CONFIG.botNome} 』`;
 
-        // 🔥 LINK DO CANAL (do config.js)
-        const canalLink = CONFIG.canalLink || CANAL_LINK_FALLBACK;
+        // 🔥 LINK DO CANAL
+        const canalLink = CONFIG.canalLink || '';
 
-        // 🔥 Envia com botão + menção
-        if (imageBuffer) {
-            try {
-                const mediaContent = await generateWAMessageContent(
-                    { image: imageBuffer },
-                    { upload: sock.waUploadToServer }
-                );
+        // ============================================================
+        // 🔥 ENVIA A IMAGEM (método correto: image: { url })
+        // ============================================================
+        // O Baileys baixa a imagem com autenticação automaticamente
+        // Se a URL do perfil do usuário falhar, o Baileys usa a padrão
+        // ============================================================
+
+        try {
+            // Tenta enviar com botão (interactive)
+            if (canalLink) {
+                // 🔥 USA O MÉTODO INTERATIVO
+                const mediaContent = await require('@whiskeysockets/baileys')
+                    .generateWAMessageContent(
+                        { image: { url: fotoUrl } },
+                        { upload: sock.waUploadToServer }
+                    );
 
                 const interactiveMessage = {
                     body: { text: texto },
@@ -287,19 +137,30 @@ async function enviarBoasVindas(sock, chat, participant, db, CONFIG) {
                     ]
                 });
 
-            } catch (e) {
-                // Fallback
+            } else {
+                // 🔥 SEM BOTÃO → ENVIA NORMAL
                 await sock.sendMessage(chat, {
-                    image: imageBuffer,
+                    image: { url: fotoUrl },
                     caption: texto,
                     mentions: [participantId]
                 });
             }
-        } else {
-            await sock.sendMessage(chat, {
-                text: texto,
-                mentions: [participantId]
-            });
+
+        } catch (e) {
+            // 🔥 FALLBACK: TENTA SEM BOTÃO
+            try {
+                await sock.sendMessage(chat, {
+                    image: { url: fotoUrl },
+                    caption: texto,
+                    mentions: [participantId]
+                });
+            } catch (e2) {
+                // 🔥 ÚLTIMO RECURSO: SÓ TEXTO
+                await sock.sendMessage(chat, {
+                    text: texto,
+                    mentions: [participantId]
+                });
+            }
         }
 
     } catch (error) {}
@@ -317,16 +178,31 @@ async function enviarSaida(sock, chat, participant, db, CONFIG) {
         const grupoNome = metadata?.subject || 'Grupo';
 
         const mensagemPersonalizada = db.welcomeSaidaMsg?.[chat] || null;
-        const mensagemFinal = mensagemPersonalizada ?
-            processarMensagem(mensagemPersonalizada, 'membro', grupoNome) :
-            processarMensagem(MENSAGEM_SAIDA_PADRAO, 'membro', grupoNome);
+        const mensagemFinal = mensagemPersonalizada
+            ? processarMensagem(mensagemPersonalizada, 'membro', grupoNome)
+            : processarMensagem(MENSAGEM_SAIDA_PADRAO, 'membro', grupoNome);
 
-        const texto = `\n${mensagemFinal}\n\n『 ${CONFIG.botNome} 』`;
+        const numeroMencao = participantId.split('@')[0];
 
-        await sock.sendMessage(chat, {
-            text: texto,
-            mentions: [participantId]
-        });
+        const texto = `👋 @${numeroMencao}\n${mensagemFinal}\n\n『 ${CONFIG.botNome} 』`;
+
+        // 🔥 PEGA A FOTO
+        const fotoUrl = await pegarFotoUrl(sock, participantId);
+
+        // 🔥 ENVIA COM IMAGEM
+        try {
+            await sock.sendMessage(chat, {
+                image: { url: fotoUrl },
+                caption: texto,
+                mentions: [participantId]
+            });
+        } catch (e) {
+            // 🔥 FALLBACK: SÓ TEXTO
+            await sock.sendMessage(chat, {
+                text: texto,
+                mentions: [participantId]
+            });
+        }
 
     } catch (error) {}
 }
@@ -555,7 +431,7 @@ module.exports = {
     cmdWelcomeSaida,
     cmdSetWelcomeSaida,
     cmdResetWelcomeSaida,
-    criarBoasVindasCanvas,
     MENSAGEM_ENTRADA_PADRAO,
-    MENSAGEM_SAIDA_PADRAO
+    MENSAGEM_SAIDA_PADRAO,
+    IMAGEM_PADRAO
 };

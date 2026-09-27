@@ -29,6 +29,7 @@ const { processarAntiLinkSupremo } = require('./services/antiLinkSupremo.js');
 const { cmdTts } = require('./services/tts.js');
 const { cmdAllGlb } = require('./services/allglb.js');
 const { cmdRevelar } = require('./services/revelar.js');
+const { verificarBlacklistNaEntrada } = require('./services/blacklistJoin.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -208,6 +209,9 @@ function salvarDB() {
   }
 }
 
+// 🔥 EXPÕE O DB GLOBALMENTE (pra outros módulos acessarem)
+global.db = db;
+global.salvarDB = salvarDB;
 // ==================== INICIALIZAR ESTRUTURAS DO DB ====================
 const initDB = () => {
   // Estruturas existentes
@@ -1448,9 +1452,13 @@ function configurarEventos(sock) {
 // ==================== EVENTO: ENTRADA/SAÍDA ====================
 sock.ev.on("group-participants.update", async (update) => {
     const { id, participants, action } = update;
-    
+
     for (const p of participants) {
         if (action === 'add') {
+            // 🔥 VERIFICA BLACKLIST PRIMEIRO
+            await verificarBlacklistNaEntrada(sock, id, p);
+
+            // 🔥 DEPOIS MANDA BOAS-VINDAS (se não foi banido)
             await enviarBoasVindas(sock, id, p, db, CONFIG);
         } else if (action === 'remove') {
             await enviarSaida(sock, id, p, db, CONFIG);
