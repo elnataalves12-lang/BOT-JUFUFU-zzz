@@ -19,7 +19,6 @@ const { cmdStickerToGif } = require('./services/stickerToGif.js');
 const { renomearFigurinha } = require('./services/renameSticker.js');
 const { getProfile, formatarPerfil } = require('./services/profile.js');
 const { createSticker } = require('./services/sticker.js');
-const { play } = require('./services/spiderX.js');
 const { cmdBotInfo } = require('./services/botInfo.js');
 const { cmdWaifu, cmdNeko } = require('./services/waifu.js');
 const { cmdGifSticker } = require('./services/stickerGif.js');

@@ -11,7 +11,6 @@
     "@hapi/boom": "^10.0.1",
     "@whiskeysockets/baileys": "^6.6.0",
     "axios": "^1.7.7",
-    "canvas": "^2.11.2",
     "chalk": "^4.1.2",
     "fluent-ffmpeg": "^2.1.2",
     "node-fetch": "^3.3.2",
