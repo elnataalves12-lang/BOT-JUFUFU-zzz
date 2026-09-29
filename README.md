@@ -3,7 +3,7 @@
 **JUFUFU BOT — UM BOT COMPLETO PARA WHATSAPP, COM DIVERSAS FUNCIONALIDADES**
 
 <div align="center">
-  <img src="01-inicio.jpg" alt="JUFUFU BOT" width="900">
+  <img src="imgs/IMG-20260928-WA0303.jpg" alt="JUFUFU BOT" width="900">
 </div>
 
 <br>
@@ -59,7 +59,7 @@ Baixe o **Termux** pelo **F-Droid** (recomendado):
 > ⚠️ **Não use** a versão antiga da Play Store — ela está desatualizada.
 
 <div align="center">
-  <img src="02-numero.jpg" alt="Termux" width="600">
+  <img src="imgs/IMG-20260928-WA0294.jpg" alt="Termux" width="900">
 </div>
 
 ### 2. 🔄 Atualize o Termux
@@ -119,10 +119,10 @@ cd BOT-JUFUFU-zzz
 Execute:
 
 ```bash
-npm install --no-optional --ignore-scripts --no-audit --no-fund
+npm install
 ```
 
-> 💡 Essas flags evitam erros comuns no Termux e deixam a instalação mais rápida.
+> 💡 Todas as dependências do Jufufu funcionam direto no Termux.
 
 ---
 
@@ -135,10 +135,6 @@ Execute:
 ```bash
 nano config.js
 ```
-
-<div align="center">
-  <img src="03-config.jpg" alt="config.js" width="900">
-</div>
 
 ### 9. Edite os campos principais
 
@@ -193,10 +189,6 @@ Vai aparecer um **código de pareamento**, tipo:
 4. Escolha **"Vincular com número de telefone"**
 5. Cole o código
 
-<div align="center">
-  <img src="04-whatsapp.jpg" alt="Conectar WhatsApp" width="900">
-</div>
-
 ### 12. Verifique se está funcionando
 
 Quando o bot conectar, vai aparecer no Termux:
@@ -206,10 +198,6 @@ Quando o bot conectar, vai aparecer no Termux:
 ```
 
 Agora manda `°menu` em qualquer grupo onde o bot está, e ele deve responder.
-
-<div align="center">
-  <img src="05-bot-grupo.jpg" alt="Jufufu em ação" width="900">
-</div>
 
 ---
 
@@ -259,7 +247,7 @@ Se você já tem o projeto e quer atualizar para a versão mais nova, execute:
 ```bash
 cd BOT-JUFUFU-zzz
 git pull
-npm install --no-optional --ignore-scripts --no-audit --no-fund
+npm install
 npm start
 ```
 

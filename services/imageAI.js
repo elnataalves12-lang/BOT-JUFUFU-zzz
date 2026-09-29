@@ -84,7 +84,6 @@ async function cmdGerarImagem(chat, sock, msg, args, sender, enviarResposta, rea
         const legenda = `╭━━━━━━━━━━━━━━━━━━━━━⬢
 ┃ 🖼️ IMAGEM GERADA
 ┃ 📝 ${prompt}
-┃ 💳 Créditos: ${data.credits_remaining ?? 'N/A'}
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 『 ${CONFIG.botNome} 』`;
 

@@ -17,7 +17,6 @@ const { cmdYt } = require('./services/youtube.js');
 const { cmdStickerToMedia } = require('./services/stickerToMedia.js');
 const { cmdStickerToGif } = require('./services/stickerToGif.js');
 const { renomearFigurinha } = require('./services/renameSticker.js');
-const { getProfile, formatarPerfil } = require('./services/profile.js');
 const { createSticker } = require('./services/sticker.js');
 const { cmdBotInfo } = require('./services/botInfo.js');
 const { cmdWaifu, cmdNeko } = require('./services/waifu.js');
@@ -29,6 +28,7 @@ const { cmdTts } = require('./services/tts.js');
 const { cmdAllGlb } = require('./services/allglb.js');
 const { cmdRevelar } = require('./services/revelar.js');
 const { verificarBlacklistNaEntrada } = require('./services/blacklistJoin.js');
+const { cmdCriador } = require('./services/criador.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -1725,6 +1725,10 @@ else if (comando === 'ping') {
     }
 }
 
+// ===== CRIADOR =====
+else if (comando === 'criador') {
+    await cmdCriador(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
+}
   // ===== TTS - TEXTO EM ÁUDIO =====
 else if (comando === 'tts') {
     await cmdTts(chat, sock, msg, args, enviarResposta, reagir, CONFIG);
