@@ -3,7 +3,7 @@
 **JUFUFU BOT — UM BOT COMPLETO PARA WHATSAPP, COM DIVERSAS FUNCIONALIDADES**
 
 <div align="center">
-  <img src="imgs/IMG-20260928-WA0303.jpg" alt="JUFUFU BOT" width="900">
+  <img src="IMG-20260928-WA0303.jpg" alt="JUFUFU BOT" width="900">
 </div>
 
 <br>
@@ -59,7 +59,7 @@ Baixe o **Termux** pelo **F-Droid** (recomendado):
 > ⚠️ **Não use** a versão antiga da Play Store — ela está desatualizada.
 
 <div align="center">
-  <img src="imgs/IMG-20260928-WA0294.jpg" alt="Termux" width="900">
+  <img src="IMG-20260928-WA0294.jpg" alt="JUFUFU BOT" width="900">
 </div>
 
 ### 2. 🔄 Atualize o Termux
