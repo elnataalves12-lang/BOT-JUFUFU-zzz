@@ -122,13 +122,21 @@ Execute:
 npm install
 ```
 
-> 💡 Todas as dependências do Jufufu funcionam direto no Termux.
+### 8. Instale o pacote necessário para a API
+
+Execute:
+
+```bash
+npm install node-fetch@2
+```
+
+> 💡 Esse pacote é essencial para que o bot consiga fazer as requisições nas APIs.
 
 ---
 
 ## ⚙️ Configuração
 
-### 8. Abra o arquivo de configuração
+### 9. Abra o arquivo de configuração
 
 Execute:
 
@@ -136,7 +144,7 @@ Execute:
 nano config.js
 ```
 
-### 9. Edite os campos principais
+### 10. Edite os campos principais
 
 | Campo | O que é |
 |-------|---------|
@@ -156,7 +164,7 @@ Salve com **Ctrl+O** → **Enter** → **Ctrl+X**.
 
 ## ▶️ Iniciando o bot
 
-### 10. Rode o bot
+### 11. Rode o bot
 
 Execute:
 
@@ -164,13 +172,16 @@ Execute:
 npm start
 ```
 
-### 11. Conecte seu WhatsApp
+### 12. Conecte seu WhatsApp
 
 O terminal vai pedir:
 
 ```
 👉 Digite seu número (ex: 5599999999999):
 ```
+<div align="center">
+  <img src="IMG-20260929-WA0058.jpg" alt="JUFUFU BOT" width="900">
+</div>
 
 Digite seu número **com DDI e DDD** (só números, sem `+` ou espaços).
 
@@ -185,17 +196,40 @@ Vai aparecer um **código de pareamento**, tipo:
 
 1. Abra o **WhatsApp**
 2. Toque em **3 pontinhos** → **Dispositivos vinculados**
+
+<div align="center">
+  <img src="IMG-20260929-WA0054.jpg" alt="JUFUFU BOT" width="900">
+</div>
+
 3. Toque em **Vincular um dispositivo**
+
+<div align="center">
+  <img src="IMG-20260929-WA0055.jpg" alt="JUFUFU BOT" width="900">
+</div>
+
 4. Escolha **"Vincular com número de telefone"**
 5. Cole o código
 
-### 12. Verifique se está funcionando
+<div align="center">
+  <img src="IMG-20260929-WA0057.jpg" alt="JUFUFU BOT" width="900">
+</div>
+
+
+### 13. Verifique se está funcionando
 
 Quando o bot conectar, vai aparecer no Termux:
 
 ```
-✅ 𝙹𝚄𝙵𝚄𝙵𝚄-ᶻᶻᶻ_b̶o҈꓄ está ONLINE! 🚀
+  ╔═══════════════════════════════════╗
+  ║  🐯 𝙹𝚄𝙵𝚄𝙵𝚄-ᶻᶻᶻ_b̶o҈꓄ ACORDOU!            ║ 
+  ║  Mestre, tô pronta pra missão!          ║     
+  ╚═══════════════════════════════════╝
 ```
+
+<div align="center">
+  <img src="IMG-20260929-WA0059.jpg" alt="JUFUFU BOT" width="900">
+</div>
+
 
 Agora manda `°menu` em qualquer grupo onde o bot está, e ele deve responder.
 
@@ -240,21 +274,6 @@ A sessão fica salva na pasta `session/`, então **não precisa parear de novo**
 
 ---
 
-## 🔄 Atualizar o bot
-
-Se você já tem o projeto e quer atualizar para a versão mais nova, execute:
-
-```bash
-cd BOT-JUFUFU-zzz
-git pull
-npm install
-npm start
-```
-
-> ⚠️ Antes de atualizar, faça backup do seu `config.js` e `database.json`, caso tenham sido alterados.
-
----
-
 ## 🔒 Segurança
 
 Nunca publique ou compartilhe:
@@ -267,14 +286,6 @@ Nunca publique ou compartilhe:
 - ❌ Credenciais pessoais
 
 **Cada pessoa deve rodar sua própria cópia e conectar sua própria conta do WhatsApp.**
-
-Coloque essas pastas e arquivos no seu `.gitignore`:
-
-```
-session/
-database.json
-config.js
-```
 
 ---
 
