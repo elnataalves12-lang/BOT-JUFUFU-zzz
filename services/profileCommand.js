@@ -4,11 +4,8 @@
 
 // ==================== FOTOS PADRÃO ====================
 const FOTOS_PADRAO = [
-    "https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1783600763527-x2fy02.jpg",
-    "https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1783600799374-qcm0be.jpg",
-    "https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1783600816412-ybqzns.jpg",
-    "https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1783600838200-q7fdzb.jpg",
-    "https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1783600851281-m3yhaw.jpg"
+    "https://dbzrrcjeciyprxyvoqra.supabase.co/storage/v1/object/sign/uploads/00d232f3-f32b-4ec0-8adb-de2ad8c1166c/IMG-20260928-WA0007.jpg?token=eyJraWQiOiI2M2QxNzA5MS00NzYxLTRjY2EtOWZmMS1hYThiMzA5MmRmMGQiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJ1cGxvYWRzLzAwZDIzMmYzLWYzMmItNGVjMC04YWRiLWRlMmFkOGMxMTY2Yy9JTUctMjAyNjA5MjgtV0EwMDA3LmpwZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3OTA3MjQ5NzAsImV4cCI6MjEwNjA4NDk3MH0.aHTBV5leLJ9Fg88nMgFiY5txQ_M0pkffrbB3hW2WipBNhvTlh-jHiY-yDeB5zGxGwsG08Cl-wBQRd3Se057o0A",
+    "https://dbzrrcjeciyprxyvoqra.supabase.co/storage/v1/object/sign/uploads/00d232f3-f32b-4ec0-8adb-de2ad8c1166c/IMG-20260928-WA0007.jpg?token=eyJraWQiOiI2M2QxNzA5MS00NzYxLTRjY2EtOWZmMS1hYThiMzA5MmRmMGQiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJ1cGxvYWRzLzAwZDIzMmYzLWYzMmItNGVjMC04YWRiLWRlMmFkOGMxMTY2Yy9JTUctMjAyNjA5MjgtV0EwMDA3LmpwZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3OTA3MjQ5NzAsImV4cCI6MjEwNjA4NDk3MH0.aHTBV5leLJ9Fg88nMgFiY5txQ_M0pkffrbB3hW2WipBNhvTlh-jHiY-yDeB5zGxGwsG08Cl-wBQRd3Se057o0A"
 ];
 
 // ==================== FUNÇÕES AUXILIARES ====================

@@ -8,7 +8,7 @@
 const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 
 // ==================== IMAGEM PADRÃO ====================
-const IMAGEM_PADRAO = 'https://wivkiglslhvvmutsexlx.supabase.co/storage/v1/object/public/uploads/1790535895199-l9ob00.jpg';
+const IMAGEM_PADRAO = 'https://dbzrrcjeciyprxyvoqra.supabase.co/storage/v1/object/sign/uploads/bccec1a2-3510-400e-a8e1-33495816c98f/---JPG-.jpg?token=eyJraWQiOiI2M2QxNzA5MS00NzYxLTRjY2EtOWZmMS1hYThiMzA5MmRmMGQiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJ1cGxvYWRzL2JjY2VjMWEyLTM1MTAtNDAwZS1hOGUxLTMzNDk1ODE2Yzk4Zi8tLS1KUEctLmpwZyIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3OTA3MTU5OTEsImV4cCI6MjEwNjA3NTk5MX0.TI9F-3-nbX6bHjUQlgFrPEaNiOh1-4uWNEZr0sg7Y35PgBQfCK9RX0xJfDyYWoTIQrznsFh3XcJBnhy12EebBQ';
 
 // ==================== MENSAGENS PADRÃO ====================
 const MENSAGEM_ENTRADA_PADRAO = '👋 Seja bem-vindo(a) ao grupo {grupo}!';
