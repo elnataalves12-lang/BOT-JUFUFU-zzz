@@ -29,6 +29,10 @@ const { cmdAllGlb } = require('./services/allglb.js');
 const { cmdRevelar } = require('./services/revelar.js');
 const { verificarBlacklistNaEntrada } = require('./services/blacklistJoin.js');
 const { cmdCriador } = require('./services/criador.js');
+const { cmdPdf } = require('./services/pdf.js');
+const { cmdPack, responderBotaoPack } = require('./services/pack.js');
+const { cmdEmojiMix } = require('./services/emojimix.js');
+const { initModule: initPing, cmdPing } = require('./services/ping.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -181,10 +185,19 @@ const {
     cmdListarInteracoes
 } = require('./services/interactions.js');
 
+// ================ pinterest ================
 const { 
     cmdPinterest,
     responderBotaoPinterest 
 } = require('./services/pinterest.js');
+
+// ================ protecao de adm ================
+const {
+    processarMudancaAdm,
+    processarBan,
+    cmdProtecaoAdm,
+    cmdAdmAllowed
+} = require('./services/protecaoAdm.js'); 
 
 // ==================== IMPORTAÇÕES ====================
 const {
@@ -280,6 +293,29 @@ const {
 // 🔥 INICIALIZAR O MÓDULO RPG
 initModule(db, CONFIG, enviarResposta, DB_PATH);
 
+// ==================== MENSAGUENS ====================
+const {
+    initModule: initMensagens,
+    contarMensagem: contarMensagemXp,
+    cmdMinhasMensagens,
+    cmdPerfilMensagens,
+    cmdRankMensagens,
+    cmdResumoMensagens,
+    iniciarSchedulerMensagens
+} = require('./services/mensagens.js');
+
+// 🔥 INICIALIZAR MÓDULO MENSAGENS
+initMensagens(db, CONFIG, enviarResposta, salvarDB, verificarAdmin, isDono);
+
+// ==================== CITAR-MARCAR ===================
+const {
+    initModule: initCitar,
+    cmdMarcaTodos,
+    cmdMarcarAdm,
+    cmdCitar
+} = require('./services/citar.js');
+// 🔥 INICIALIZAR MÓDULO CITAR
+initCitar(CONFIG, enviarResposta, reagir, verificarAdmin, isDono);
 // ==================== IMPORTAÇÕES DO AFK ====================
 const {
     initModule: initAfk,
@@ -660,347 +696,6 @@ async function meuStatus(chat, sock, sender, msg) {
   
   await sock.sendMessage(chat, { text: texto, mentions: [sender] }, { quoted: msg });
 }
-
-// ==================== COMANDO °MARCATODOS ====================
-async function cmdMarcaTodos(chat, sock, sender, msg) {
-    const isAdmin = await verificarAdmin(sock, chat, sender);
-    const isDonoBot = await isDono(sender);
-    
-    if (!isAdmin && !isDonoBot) {
-        await enviarResposta(chat, sock, '🚫 Apenas administradores podem usar este comando!', msg);
-        return;
-    }
-
-    await reagir(sock, chat, msg.key.id, '📢');
-
-    try {
-        const metadata = await sock.groupMetadata(chat);
-        const participantes = metadata.participants;
-        
-        const admins = participantes.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
-        const membros = participantes.filter(p => !p.admin);
-        
-        const totalMembros = participantes.length;
-        const totalAdmins = admins.length;
-        const totalNormais = membros.length;
-        
-        const allIds = participantes.map(p => p.id);
-        
-        const grupoNome = metadata.subject || 'Grupo';
-        const dataAtual = new Date().toLocaleDateString('pt-BR');
-        const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        
-        const mensagemBase = `开启 ${CONFIG.botNome} - 📢 MARCA TODOS 〛
-╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 🏠 ${grupoNome}
-┃ 📅 ${dataAtual} | 🕐 ${horaAtual}
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-
-📊 ESTATÍSTICAS
-┃ 👥 Total: ${totalMembros} membros
-┃ 👑 ADMs: ${totalAdmins}
-┃ 👤 Membros: ${totalNormais}
-
-🔔 ATENÇÃO!
-┃
-
-━━━━━━━━━━━━━━━━━━━━━⬢
-👥 MEMBROS:`;
-
-        const MAX_MENCOES = 120;
-        const totalParts = Math.ceil(allIds.length / MAX_MENCOES);
-        
-        function gerarListaMembros(ids) {
-            let lista = '';
-            for (const id of ids) {
-                const nome = id.split('@')[0];
-                lista += `@${nome}\n`;
-            }
-            return lista;
-        }
-        
-        if (totalParts === 1) {
-            const listaMembros = gerarListaMembros(allIds);
-            
-            const textoFinal = `${mensagemBase}\n\n${listaMembros}\n╰━━━━━━━━━━━━━━━━━━━━━⬢\n『 ${CONFIG.botNome} 』`;
-            
-            await sock.sendMessage(chat, {
-                text: textoFinal,
-                mentions: allIds
-            }, { quoted: msg });
-            
-        } else {
-            await enviarResposta(chat, sock, `📢 Grupo com ${totalMembros} membros! Enviando em ${totalParts} partes...`, msg);
-            
-            for (let i = 0; i < totalParts; i++) {
-                const inicio = i * MAX_MENCOES;
-                const fim = Math.min(inicio + MAX_MENCOES, allIds.length);
-                const parteMembros = allIds.slice(inicio, fim);
-                const parteNumero = i + 1;
-                
-                const listaMembros = gerarListaMembros(parteMembros);
-                
-                const textoParte = `开启 ${CONFIG.botNome} - 📢 MARCA TODOS 〛
-╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 📌 Parte ${parteNumero}/${totalParts}
-┃ 👥 ${parteMembros.length} membros
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-
-${listaMembros}
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-『 ${CONFIG.botNome} 』`;
-
-                await sock.sendMessage(chat, {
-                    text: textoParte,
-                    mentions: parteMembros
-                }, { quoted: msg });
-                
-                if (i < totalParts - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                }
-            }
-        }
-        
-        await reagir(sock, chat, msg.key.id, '✅');
-        
-    } catch (error) {
-        console.error('❌ Erro no marca todos:', error);
-        await enviarResposta(chat, sock, `❌ Erro: ${error.message}`, msg);
-        await reagir(sock, chat, msg.key.id, '❌');
-    }
-}
-
-// ==================== COMANDO °MARCARADM ====================
-async function cmdMarcarAdm(chat, sock, sender, msg) {
-    const isAdmin = await verificarAdmin(sock, chat, sender);
-    const isDonoBot = await isDono(sender);
-    
-    if (!isAdmin && !isDonoBot) {
-        await enviarResposta(chat, sock, '🚫 Apenas administradores!', msg);
-        return;
-    }
-
-    await reagir(sock, chat, msg.key.id, '👑');
-
-    try {
-        const metadata = await sock.groupMetadata(chat);
-        const admins = metadata.participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
-        
-        if (admins.length === 0) {
-            await enviarResposta(chat, sock, '📊 Nenhum administrador encontrado!', msg);
-            return;
-        }
-        
-        const adminIds = admins.map(p => p.id);
-        const grupoNome = metadata.subject || 'Grupo';
-        
-        let listaAdms = '';
-        for (const id of adminIds) {
-            const nome = id.split('@')[0];
-            listaAdms += `@${nome}\n`;
-        }
-        
-        const texto = `开启 ${CONFIG.botNome} - 👑 ADMINS 〛
-╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 🏠 ${grupoNome}
-┃ 👑 ${admins.length} administradores
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-
-${listaAdms}
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-『 ${CONFIG.botNome} 』`;
-
-        await sock.sendMessage(chat, {
-            text: texto,
-            mentions: adminIds
-        }, { quoted: msg });
-        
-        await reagir(sock, chat, msg.key.id, '✅');
-        
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        await enviarResposta(chat, sock, `❌ Erro: ${error.message}`, msg);
-        await reagir(sock, chat, msg.key.id, '❌');
-    }
-}
-
-// ==================== COMANDO °CITAR (MÍDIA COMPLETA) ====================
-
-async function cmdCitar(chat, sock, msg, args, sender) {
-    // 🔥 VERIFICA SE É ADM OU DONO
-    const isAdmin = await verificarAdmin(sock, chat, sender);
-    const isDonoBot = await isDono(sender);
-    
-    if (!isAdmin && !isDonoBot) {
-        await enviarResposta(chat, sock, '🚫 Apenas administradores podem usar este comando!', msg);
-        return;
-    }
-
-    await reagir(sock, chat, msg.key.id, '📢');
-
-    try {
-        // ===== PEGA A MENSAGEM RESPONDIDA =====
-        const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-        
-        // ===== PEGA TODOS OS MEMBROS DO GRUPO =====
-        const metadata = await sock.groupMetadata(chat);
-        const participantes = metadata.participants;
-        const allIds = participantes.map(p => p.id);
-        const totalMembros = allIds.length;
-        const MAX_MENCOES = 120;
-        const totalParts = Math.ceil(totalMembros / MAX_MENCOES);
-
-        // 🔥 SE TIVER MENSAGEM RESPONDIDA
-        if (quoted) {
-            // ===== VERIFICA O TIPO DE MÍDIA =====
-            const isImage = !!quoted.imageMessage;
-            const isVideo = !!quoted.videoMessage;
-            const isAudio = !!quoted.audioMessage;
-            const isSticker = !!quoted.stickerMessage;
-            const isDocument = !!quoted.documentMessage;
-            const isText = !!quoted.conversation || !!quoted.extendedTextMessage?.text;
-
-            // ===== PEGA O TEXTO DA MENSAGEM (SE TIVER) =====
-            let texto = quoted.conversation || 
-                       quoted.extendedTextMessage?.text || 
-                       quoted.imageMessage?.caption ||
-                       quoted.videoMessage?.caption ||
-                       quoted.documentMessage?.fileName ||
-                       '';
-
-            // ===== BAIXA A MÍDIA (SE FOR IMAGEM, VÍDEO, ÁUDIO OU STICKER) =====
-            if (isImage || isVideo || isAudio || isSticker) {
-                const target = { message: quoted, key: msg.key };
-                const buffer = await downloadMediaMessage(target, 'buffer', {}, { logger: P({ level: 'silent' }) });
-
-                // ===== ENVIA A MÍDIA PARA TODOS =====
-                if (totalParts === 1) {
-                    // 🔥 MENOS DE 120 MEMBROS
-                    await enviarMidiaComMencao(sock, chat, quoted, buffer, allIds, texto);
-                } else {
-                    // 🔥 MAIS DE 120 MEMBROS - DIVIDE
-                    for (let i = 0; i < totalParts; i++) {
-                        const inicio = i * MAX_MENCOES;
-                        const fim = Math.min(inicio + MAX_MENCOES, allIds.length);
-                        const parteMembros = allIds.slice(inicio, fim);
-                        
-                        await enviarMidiaComMencao(sock, chat, quoted, buffer, parteMembros, texto);
-                        
-                        if (i < totalParts - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 1500));
-                        }
-                    }
-                }
-            } else if (isDocument) {
-                // ===== DOCUMENTO (NÃO BAIXA, SÓ REPETE COM MENÇÃO) =====
-                if (totalParts === 1) {
-                    await sock.sendMessage(chat, {
-                        text: `📎 ${quoted.documentMessage?.fileName || 'Documento'}`,
-                        mentions: allIds
-                    }, { quoted: msg });
-                } else {
-                    for (let i = 0; i < totalParts; i++) {
-                        const inicio = i * MAX_MENCOES;
-                        const fim = Math.min(inicio + MAX_MENCOES, allIds.length);
-                        const parteMembros = allIds.slice(inicio, fim);
-                        
-                        await sock.sendMessage(chat, {
-                            text: `📎 ${quoted.documentMessage?.fileName || 'Documento'}`,
-                            mentions: parteMembros
-                        }, { quoted: msg });
-                        
-                        if (i < totalParts - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 1500));
-                        }
-                    }
-                }
-            } else if (isText) {
-                // ===== TEXTO PURO =====
-                const textoParaCitar = texto || 'Mensagem sem texto';
-                
-                if (totalParts === 1) {
-                    await sock.sendMessage(chat, {
-                        text: textoParaCitar,
-                        mentions: allIds
-                    }, { quoted: msg });
-                } else {
-                    for (let i = 0; i < totalParts; i++) {
-                        const inicio = i * MAX_MENCOES;
-                        const fim = Math.min(inicio + MAX_MENCOES, allIds.length);
-                        const parteMembros = allIds.slice(inicio, fim);
-                        
-                        await sock.sendMessage(chat, {
-                            text: textoParaCitar,
-                            mentions: parteMembros
-                        }, { quoted: msg });
-                        
-                        if (i < totalParts - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 1500));
-                        }
-                    }
-                }
-            }
-            
-            await reagir(sock, chat, msg.key.id, '✅');
-            return;
-        }
-
-        // ===== SE NÃO TIVER MENSAGEM RESPONDIDA =====
-        const textoDigitado = args.join(' ').trim();
-        if (!textoDigitado) {
-            await enviarResposta(chat, sock, `📌 Use: ${CONFIG.prefix}citar <mensagem>\n📌 Ou: ${CONFIG.prefix}citar (respondendo uma mensagem)`, msg);
-            await reagir(sock, chat, msg.key.id, '❌');
-            return;
-        }
-
-        // ===== ENVIA O TEXTO COM MENÇÃO =====
-        if (totalParts === 1) {
-            await sock.sendMessage(chat, {
-                text: textoDigitado,
-                mentions: allIds
-            }, { quoted: msg });
-        } else {
-            for (let i = 0; i < totalParts; i++) {
-                const inicio = i * MAX_MENCOES;
-                const fim = Math.min(inicio + MAX_MENCOES, allIds.length);
-                const parteMembros = allIds.slice(inicio, fim);
-                
-                await sock.sendMessage(chat, {
-                    text: textoDigitado,
-                    mentions: parteMembros
-                }, { quoted: msg });
-                
-                if (i < totalParts - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                }
-            }
-        }
-
-        await reagir(sock, chat, msg.key.id, '✅');
-
-    } catch (error) {
-        console.error('❌ Erro no citar:', error);
-        
-        // 🔥 TENTA ENVIAR COMO TEXTO SE FALHAR
-        try {
-            const texto = args.join(' ').trim() || 'Mensagem citada';
-            const metadata = await sock.groupMetadata(chat);
-            const participantes = metadata.participants;
-            const allIds = participantes.map(p => p.id);
-            
-            await sock.sendMessage(chat, {
-                text: texto,
-                mentions: allIds
-            }, { quoted: msg });
-            
-            await reagir(sock, chat, msg.key.id, '✅');
-        } catch (e) {
-            await enviarResposta(chat, sock, `❌ Erro: ${error.message}`, msg);
-            await reagir(sock, chat, msg.key.id, '❌');
-        }
-    }
-}
-
 // ==================== FUNÇÃO AUXILIAR PARA ENVIAR MÍDIA ====================
 
 async function enviarMidiaComMencao(sock, chat, quoted, buffer, mentions, texto) {
@@ -1068,26 +763,48 @@ async function enviarMidiaComMencao(sock, chat, quoted, buffer, mentions, texto)
 
 // ==================== CRIAR FIGURINHA ====================
 async function criarFigurinha(chat, sock, sender, msg) {
+    // 🔥 PEGA A MÍDIA RESPONDIDA (se tiver)
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-    
-    if (!quoted || (!quoted.imageMessage && !quoted.videoMessage)) {
-        await enviarResposta(chat, sock, '⚠️ Responda a uma imagem ou vídeo (até 10s)!', msg);
+
+    // 🔥 PEGA A MÍDIA DA PRÓPRIA MENSAGEM (se tiver)
+    const midiaAtual = msg.message?.imageMessage || msg.message?.videoMessage;
+
+    // 🔥 DEFINE DE ONDE VAI PEGAR A MÍDIA
+    let midiaFonte = null;
+    let tipoMidia = null;
+
+    if (quoted && (quoted.imageMessage || quoted.videoMessage)) {
+        // ✅ CASO 1: RESPONDENDO UMA MÍDIA
+        midiaFonte = quoted;
+        tipoMidia = quoted.imageMessage ? 'image' : 'video';
+    } else if (midiaAtual) {
+        // ✅ CASO 2: ENVIANDO MÍDIA COM O COMANDO
+        midiaFonte = msg.message;
+        tipoMidia = msg.message.imageMessage ? 'image' : 'video';
+    } else {
+        // ❌ NENHUMA MÍDIA
+        await enviarResposta(chat, sock,
+            '⚠️ Envie uma foto/vídeo (até 10s) com °sticker\n' +
+            '📌 Ou responda uma mídia com °sticker',
+            msg
+        );
         return;
     }
-    
-    const isImage = !!quoted.imageMessage;
-    const isVideo = !!quoted.videoMessage;
-    
+
+    const isImage = tipoMidia === 'image';
+    const isVideo = tipoMidia === 'video';
+
+    // 🔥 VERIFICA DURAÇÃO DO VÍDEO
     if (isVideo) {
-        const seconds = quoted.videoMessage?.seconds;
+        const seconds = midiaFonte.videoMessage?.seconds;
         if (seconds > 10) {
             await enviarResposta(chat, sock, '⚠️ O vídeo tem mais de 10 segundos!', msg);
             return;
         }
     }
-    
+
     await reagir(sock, chat, msg.key.id, '⏳');
-    
+
     try {
         const downloadImage = async (webMsg, getRandomName) => {
             const target = { message: webMsg.message || webMsg, key: msg.key };
@@ -1096,7 +813,7 @@ async function criarFigurinha(chat, sock, sender, msg) {
             fs.writeFileSync(filePath, buffer);
             return filePath;
         };
-        
+
         const downloadVideo = async (webMsg, getRandomName) => {
             const target = { message: webMsg.message || webMsg, key: msg.key };
             const buffer = await downloadMediaMessage(target, 'buffer', {}, { logger: P({ level: 'silent' }) });
@@ -1104,42 +821,41 @@ async function criarFigurinha(chat, sock, sender, msg) {
             fs.writeFileSync(filePath, buffer);
             return filePath;
         };
-        
+
         const sendStickerFromFile = async (stickerPath) => {
             const buffer = fs.readFileSync(stickerPath);
             await sock.sendMessage(chat, { sticker: buffer }, { quoted: msg });
         };
-        
+
         // 🔥 PEGA O NICK DA PESSOA
         const nickPessoa = msg.pushName || sender.split('@')[0];
-        
+
         await createSticker({
             isImage,
             isVideo,
             downloadImage,
             downloadVideo,
-            webMessage: { 
-                message: quoted, 
+            webMessage: {
+                message: midiaFonte,       // ← AQUI (mídia respondida OU atual)
                 key: msg.key,
                 pushName: msg.pushName
             },
             sendStickerFromFile,
             userLid: sender,
-            msg: msg,  // 🔥 ADICIONE ESTA LINHA
+            msg: msg,
             metadataCustom: {
-                creator: nickPessoa  // 🔥 ADICIONE ESTA LINHA
+                creator: nickPessoa
             }
         });
-        
+
         await reagir(sock, chat, msg.key.id, '✅');
-        
+
     } catch (err) {
         console.error('❌ Erro ao criar sticker:', err);
         await enviarResposta(chat, sock, `❌ ${err.message}`, msg);
         await reagir(sock, chat, msg.key.id, '❌');
     }
 }
-
 // ==================== COMANDOS ADMIN ====================
 async function mutar(sock, chat, alvo, msg) {
   if (!db.mutados[chat]) db.mutados[chat] = [];
@@ -1448,19 +1164,54 @@ mostrarArte();
 function configurarEventos(sock) {
     console.log('📅 Configurando eventos...');
 
-// ==================== EVENTO: ENTRADA/SAÍDA ====================
 sock.ev.on("group-participants.update", async (update) => {
-    const { id, participants, action } = update;
+    const { id, participants, action, author } = update;
 
     for (const p of participants) {
+        const participantId = typeof p === 'string' ? p : (p.id || p);
+
+        // ============================================================
+        // 🔥 ENTRADA
+        // ============================================================
         if (action === 'add') {
             // 🔥 VERIFICA BLACKLIST PRIMEIRO
             await verificarBlacklistNaEntrada(sock, id, p);
 
             // 🔥 DEPOIS MANDA BOAS-VINDAS (se não foi banido)
             await enviarBoasVindas(sock, id, p, db, CONFIG);
-        } else if (action === 'remove') {
-            await enviarSaida(sock, id, p, db, CONFIG);
+        }
+
+        // ============================================================
+        // 🔥 SAÍDA (ban ou voluntária)
+        // ============================================================
+        else if (action === 'remove') {
+            // 🔥 SE TEM AUTHOR = foi um ADM que removeu (ban)
+            if (author) {
+                try {
+                    await processarBan(sock, id, author, participantId, db, salvarDB, CONFIG);
+                } catch (e) {}
+            } else {
+                // 🔥 SE NÃO TEM AUTHOR = a pessoa saiu sozinha
+                await enviarSaida(sock, id, p, db, CONFIG);
+            }
+        }
+
+        // ============================================================
+        // 🔥 PROMOÇÃO DE ADM
+        // ============================================================
+        else if (action === 'promote') {
+            try {
+                await processarMudancaAdm(sock, id, author, participantId, 'promote', db, salvarDB, CONFIG);
+            } catch (e) {}
+        }
+
+        // ============================================================
+        // 🔥 REBAIXAMENTO DE ADM
+        // ============================================================
+        else if (action === 'demote') {
+            try {
+                await processarMudancaAdm(sock, id, author, participantId, 'demote', db, salvarDB, CONFIG);
+            } catch (e) {}
         }
     }
 });
@@ -1482,18 +1233,39 @@ sock.ev.on("group-participants.update", async (update) => {
         await marcarComoLida(sock, msg);
         await contarMensagem(chat, sender, msg, sock);
 
-        const texto = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
-        const textoOriginal = texto.toLowerCase();
+// 🔥 CONTAR MENSAGEM + XP
+try {
+    await contarMensagemXp(chat, sender, msg, sock);
+} catch (e) {}
+
+      // 🔥 PEGA O TEXTO DE QUALQUER LUGAR (incluindo legendas de mídia)
+const texto = (
+    msg.message.conversation ||
+    msg.message.extendedTextMessage?.text ||
+    msg.message.imageMessage?.caption ||
+    msg.message.videoMessage?.caption ||
+    msg.message.documentMessage?.caption ||
+    ''
+).trim();
+
+const textoOriginal = texto.toLowerCase();
         
         const mencionados = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
         await verificarAfk(chat, sender, mencionados, sock, msg);
+
+        // 🔥 MITA - RESPOSTA AUTOMÁTICA
+if (chat.endsWith('@g.us') && !texto.startsWith(CONFIG.prefix)) {
+    try {
+        await processarMensagemAutomatica(sock, chat, sender, msg, texto, CONFIG);
+    } catch (e) {}
+}
+
 
         if (db.mutados[chat] && db.mutados[chat].includes(sender)) {
             try { await sock.sendMessage(chat, { delete: msg.key }); } catch(e) {}
             return;
         }
         
-// 🔥 TRATAMENTO DE BOTÕES
 if (msg.message?.templateButtonReplyMessage) {
     const buttonId = msg.message.templateButtonReplyMessage.selectedId;
     
@@ -1501,6 +1273,8 @@ if (msg.message?.templateButtonReplyMessage) {
         await responderBotaoMenu(sock, chat, sender, msg, buttonId);
     } else if (buttonId.startsWith('pin_')) {
         await responderBotaoPinterest(sock, chat, sender, msg, buttonId, CONFIG, reagir);
+    } else if (buttonId.startsWith('pack_')) {
+        await responderBotaoPack(sock, chat, sender, msg, buttonId, CONFIG, reagir);
     } else if (buttonId.startsWith('opcao_')) {
         await responderBotao(sock, chat, sender, msg, buttonId, CONFIG);
     }
@@ -1520,6 +1294,8 @@ if (msg.message?.interactiveResponseMessage) {
                 await responderBotaoMenu(sock, chat, sender, msg, buttonId);
             } else if (buttonId.startsWith('pin_')) {
                 await responderBotaoPinterest(sock, chat, sender, msg, buttonId, CONFIG, reagir);
+            } else if (buttonId.startsWith('pack_')) {   // ← ADICIONA ESSA LINHA
+                await responderBotaoPack(sock, chat, sender, msg, buttonId, CONFIG, reagir);
             } else if (buttonId.startsWith('opcao_')) {
                 await responderBotao(sock, chat, sender, msg, buttonId, CONFIG);
             }
@@ -1615,6 +1391,13 @@ else if (comando === 'resetmenu') {
     });
 }
 
+// ===== PROTEÇÃO DE ADM =====
+else if (comando === 'protecaoadm') {
+    await cmdProtecaoAdm(chat, sock, sender, msg, args, enviarResposta, reagir, verificarAdmin, isDono, db, salvarDB, CONFIG);
+}
+else if (comando === 'admallowed') {
+    await cmdAdmAllowed(chat, sock, sender, msg, args, enviarResposta, reagir, verificarAdmin, isDono, db, salvarDB, CONFIG);
+}
 // ===== REVELAR (VIEW-ONCE) =====
 else if (comando === 'revelar') {
     await cmdRevelar(chat, sock, sender, msg, args, enviarResposta, reagir, verificarAdmin, isDono, CONFIG);
@@ -1656,75 +1439,35 @@ else if (comando === 'aprovar') {
 else if (comando === 'solicitacoes') {
     await cmdListarSolicitacoes(sock, chat, sender, msg, enviarResposta, reagir, verificarAdmin, isDono, CONFIG);
 }
-        
-// ===== PING - SIMPLES E BONITO =====
+// ===== PING =====
 else if (comando === 'ping') {
-    const inicio = Date.now();
-    
-    try {
-        // 🔥 ENVIA A MENSAGEM E MEDE O TEMPO
-        const msgEnviada = await sock.sendMessage(chat, {
-            text: '🏓'
-        }, { quoted: msg });
-        
-        const latencia = Date.now() - inicio;
-        
-        // 🔥 TEMPO DE ATIVIDADE DO BOT
-        const tempoAtivo = global.inicioBot ? Math.floor((Date.now() - global.inicioBot) / 1000) : 0;
-        const dias = Math.floor(tempoAtivo / 86400);
-        const horas = Math.floor((tempoAtivo % 86400) / 3600);
-        const minutos = Math.floor((tempoAtivo % 3600) / 60);
-        const segundos = tempoAtivo % 60;
-        
-        let tempoStr = '';
-        if (dias > 0) tempoStr += `${dias}d `;
-        if (horas > 0) tempoStr += `${horas}h `;
-        if (minutos > 0) tempoStr += `${minutos}m `;
-        tempoStr += `${segundos}s`;
-        
-        // 🔥 DETERMINA A COR DA LATÊNCIA
-        let status = '';
-        let cor = '';
-        if (latencia <= 300) {
-            status = 'Excelente 🟢';
-            cor = '🟢';
-        } else if (latencia <= 600) {
-            status = 'Bom 🟡';
-            cor = '🟡';
-        } else if (latencia <= 1000) {
-            status = 'Regular 🟠';
-            cor = '🟠';
-        } else {
-            status = 'Ruim 🔴';
-            cor = '🔴';
-        }
-
-        const texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 🏓 **PONG!**
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-
-┃ 📡 ${latencia}ms
-┃ 📊 ${status}
-
-┃ ⏱️ ${tempoStr}
-
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-『 ${CONFIG.botNome} 』`;
-
-        await sock.sendMessage(chat, {
-            text: texto,
-            edit: msgEnviada.key
-        });
-        
-        await reagir(sock, chat, msg.key.id, '✅');
-        
-    } catch (error) {
-        const latencia = Date.now() - inicio;
-        await enviarResposta(chat, sock, `🏓 Pong! ${latencia}ms`, msg);
-        await reagir(sock, chat, msg.key.id, '❌');
-    }
+    await cmdPing(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
 }
-
+// ===== MENSAGENS =====
+else if (comando === 'meustatusmsgs') {
+    await cmdMinhasMensagens(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'perfilmsgs') {
+    await cmdPerfilMensagens(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'rankmsgs') {
+    await cmdRankMensagens(chat, sock, msg, args, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'resumomsgs') {
+    await cmdResumoMensagens(chat, sock, sender, msg, args, enviarResposta, reagir, verificarAdmin, isDono, CONFIG);
+}
+// ===== EMOJIMIX =====
+else if (comando === 'emojimix') {
+    await cmdEmojiMix(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== PACK DE FIGURINHAS =====
+else if (comando === 'pack') {
+    await cmdPack(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== PDF =====
+else if (comando === 'pdf') {
+    await cmdPdf(chat, sock, sender, msg, args, enviarResposta, reagir, downloadMediaMessage, P, CONFIG);
+}
 // ===== CRIADOR =====
 else if (comando === 'criador') {
     await cmdCriador(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
@@ -2195,13 +1938,6 @@ else if (comando === 'waifu') {
 else if (comando === 'neko') {
     await cmdNeko(sock, chat, msg, enviarResposta, reagir, CONFIG);
 }
-
-// ==================== COMANDO CITAR ====================
-
-// °citar - Marca todos repetindo a mensagem (apenas ADM)
-else if (comando === 'citar' || comando === 'cita' || comando === 'citacao') {
-    await cmdCitar(chat, sock, msg, args, sender);
-}
         
 // ===== BOTINFO - INFORMAÇÕES COMPLETAS DO BOT =====
 else if (comando === 'bot') {
@@ -2347,50 +2083,89 @@ else if (['trabalhar', 'work', 'diaria', 'daily', 'vagas', 'empregos', 'vaga', '
           await cmdEfeitos(chat, sock, msg);
         }
         
-        // ===== MARCAÇÃO =====
-        else if (comando === 'marcatodos' || comando === 'mt' || comando === 'todos') {
-          await cmdMarcaTodos(chat, sock, sender, msg);
-        }
-        else if (comando === 'marcaradm' || comando === 'ma' || comando === 'admins') {
-          await cmdMarcarAdm(chat, sock, sender, msg);
-        }
-        else if (comando === 'admins' || comando === 'listadm') {
-          const metadata = await sock.groupMetadata(chat);
-          const admins = metadata.participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
-          if (admins.length === 0) {
-            await enviarResposta(chat, sock, '📊 Nenhum administrador encontrado!', msg);
-            return;
-          }
-          let texto = `开启 ${CONFIG.botNome} - 👑 ADMINS 〛\n╭━━━━━━━━━━━━━━━━━━━━━⬢\n┃ 📋 ${admins.length} administradores\n╰━━━━━━━━━━━━━━━━━━━━━⬢\n\n`;
-          for (const admin of admins) {
-            const nome = admin.id.split('@')[0];
-            texto += `@${nome}\n`;
-          }
-          texto += `\n╰━━━━━━━━━━━━━━━━━━━━━⬢\n『 ${CONFIG.botNome} 』`;
-          const mentions = admins.map(p => p.id);
-          await sock.sendMessage(chat, { text: texto, mentions }, { quoted: msg });
-        }
-        
+ // ===== MARCAR TODOS =====
+else if (comando === 'marcatodos' || comando === 'mt' || comando === 'todos') {
+    await cmdMarcaTodos(chat, sock, sender, msg);
+}
+else if (comando === 'marcaradm' || comando === 'ma') {
+    await cmdMarcarAdm(chat, sock, sender, msg);
+}
+else if (comando === 'citar' || comando === 'cita' || comando === 'citacao') {
+    await cmdCitar(chat, sock, msg, args, sender);
+}
+else if (comando === 'admins' || comando === 'listadm') {
+    const metadata = await sock.groupMetadata(chat);
+    const admins = metadata.participants.filter(
+        p => p.admin === 'admin' || p.admin === 'superadmin'
+    );
+
+    if (admins.length === 0) {
+        await enviarResposta(chat, sock, '📊 Nenhum administrador encontrado!', msg);
+        return;
+    }
+
+    let texto = `开启 ${CONFIG.botNome} - 👑 ADMINS 〛\n╭━━━━━━━━━━━━━━━━━━━━━⬢\n┃ 📋 ${admins.length} administradores\n╰━━━━━━━━━━━━━━━━━━━━━⬢\n\n`;
+
+    for (const admin of admins) {
+        const nome = admin.id.split('@')[0];
+        texto += `@${nome}\n`;
+    }
+
+    texto += `\n╰━━━━━━━━━━━━━━━━━━━━━⬢\n『 ${CONFIG.botNome} 』`;
+
+    const mentions = admins.map(p => p.id);
+
+    await sock.sendMessage(
+        chat,
+        { text: texto, mentions },
+        { quoted: msg }
+    );
+}
+
 // ===== WELCOME ENTRADA =====
 else if (comando === 'welcome') {
-    await cmdWelcome(chat, sock, sender, args, msg, enviarResposta, verificarAdmin, isDono, db, salvarDB, CONFIG);
+    await cmdWelcome(
+        chat, sock, sender, args, msg,
+        enviarResposta, verificarAdmin, isDono,
+        db, salvarDB, CONFIG
+    );
 }
 else if (comando === 'setwelcome') {
-    await cmdSetWelcome(chat, sock, sender, args, msg, enviarResposta, verificarAdmin, isDono, db, salvarDB, CONFIG);
+    await cmdSetWelcome(
+        chat, sock, sender, args, msg,
+        enviarResposta, verificarAdmin, isDono,
+        db, salvarDB, CONFIG
+    );
 }
 else if (comando === 'resetwelcome') {
-    await cmdResetWelcome(chat, sock, sender, msg, enviarResposta, verificarAdmin, isDono, db, salvarDB, CONFIG);
+    await cmdResetWelcome(
+        chat, sock, sender, msg,
+        enviarResposta, verificarAdmin, isDono,
+        db, salvarDB, CONFIG
+    );
 }
 
 // ===== WELCOME SAÍDA =====
 else if (comando === 'wsaida' || comando === 'welcomesaida') {
-    await cmdWelcomeSaida(chat, sock, sender, args, msg, enviarResposta, verificarAdmin, isDono, db, salvarDB, CONFIG);
+    await cmdWelcomeSaida(
+        chat, sock, sender, args, msg,
+        enviarResposta, verificarAdmin, isDono,
+        db, salvarDB, CONFIG
+    );
 }
 else if (comando === 'setwsaida' || comando === 'setsaida') {
-    await cmdSetWelcomeSaida(chat, sock, sender, args, msg, enviarResposta, verificarAdmin, isDono, db, salvarDB, CONFIG);
+    await cmdSetWelcomeSaida(
+        chat, sock, sender, args, msg,
+        enviarResposta, verificarAdmin, isDono,
+        db, salvarDB, CONFIG
+    );
 }
 else if (comando === 'resetwsaida' || comando === 'resetsaida') {
-    await cmdResetWelcomeSaida(chat, sock, sender, msg, enviarResposta, verificarAdmin, isDono, db, salvarDB, CONFIG);
+    await cmdResetWelcomeSaida(
+        chat, sock, sender, msg,
+        enviarResposta, verificarAdmin, isDono,
+        db, salvarDB, CONFIG
+    );
 }
 
         else if (comando === 'antilink') {
@@ -2434,6 +2209,7 @@ setOnBotOnline(async (sock) => {
     console.log('📅 Carregando agendamentos...');
     carregarAgendamentosInicial(sock);
     configurarEventos(sock);
+    iniciarSchedulerMensagens(sock);
     iniciarAvisosDoPainel(sock, 30000);
     console.log('✅ Bot pronto para usar!\n');
 });

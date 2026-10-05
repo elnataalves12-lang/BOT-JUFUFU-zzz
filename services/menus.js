@@ -222,64 +222,81 @@ async function baixarCache(url) {
 }
 
 // ============================================================
-// ENVIA BOTÃO DO MENU
+// ENVIA BOTÃO DO MENU (só a lista + canal)
 // ============================================================
 
 async function enviarBotaoMenu(chave, chat, sock, msg, dados) {
-    const texto = dados.inicial || `📋 *${chave.toUpperCase()}*\n\nClique em uma opção abaixo:`;
+    const texto = dados.inicial || `📋 *${chave.toUpperCase()}*\n\nAbra a lista abaixo para escolher um menu:`;
     const botNome = dadosDoBot().bot || 'JUFUFU Bot';
 
+    // 🔥 LINK DO CANAL (vem do config.js)
+    const canalLink = CONFIG.canalLink || '';
+
+    // 🔥 BOTÕES
+    const botoes = [];
+
+    // 🔥 LISTA DE MENUS (organizada em 3 seções)
+    botoes.push({
+        name: 'single_select',
+        buttonParamsJson: JSON.stringify({
+            title: '📂 Escolher um Menu',
+            sections: [
+                {
+                    title: '📋 MENU PRINCIPAL',
+                    rows: [
+                        {
+                            title: '📋 Menu Principal',
+                            description: 'Todos os comandos do bot',
+                            id: 'menu_menu'
+                        },
+                        {
+                            title: '📚 Lista de Menus',
+                            description: 'Ver todos os menus disponíveis',
+                            id: 'menu_menus'
+                        }
+                    ]
+                },
+                {
+                    title: '👑 MENUS ESPECIAIS',
+                    rows: [
+                        {
+                            title: '👑 Menu ADM',
+                            description: 'Comandos para administradores',
+                            id: 'menu_menuadm'
+                        },
+                        {
+                            title: '🔒 Menu Dono',
+                            description: 'Comandos do dono do bot',
+                            id: 'menu_menudono'
+                        },
+                        {
+                            title: '🎮 Menu Brincadeira',
+                            description: 'Comandos de diversão e brincadeiras',
+                            id: 'menu_menubrincadeira'
+                        }
+                    ]
+                }
+            ]
+        })
+    });
+
+    // 🔥 BOTÃO DO CANAL (link do config.js)
+    if (canalLink && canalLink.startsWith('http')) {
+        botoes.push({
+            name: 'cta_url',
+            buttonParamsJson: JSON.stringify({
+                display_text: '📢 Canal do Bot',
+                url: canalLink
+            })
+        });
+    }
+
+    // 🔥 MONTA A MENSAGEM INTERATIVA
     const interactiveMessage = {
         body: { text: texto },
         footer: { text: botNome },
         nativeFlowMessage: {
-            buttons: [
-                {
-                    name: 'quick_reply',
-                    buttonParamsJson: JSON.stringify({
-                        display_text: '📋 Ver Menu',
-                        id: `menu_${chave}`
-                    })
-                },
-                {
-                    name: 'single_select',
-                    buttonParamsJson: JSON.stringify({
-                        title: '📂 Outros Menus',
-                        sections: [
-                            {
-                                title: 'Escolha um menu',
-                                rows: [
-                                    {
-                                        title: '📋 Menu Principal',
-                                        description: 'Menu com todos os comandos',
-                                        id: 'menu_menu'
-                                    },
-                                    {
-                                        title: '👑 Menu ADM',
-                                        description: 'Menu para administradores',
-                                        id: 'menu_menuadm'
-                                    },
-                                    {
-                                        title: '🎮 Menu Brincadeira',
-                                        description: 'Menu de brincadeiras',
-                                        id: 'menu_menubrincadeira'
-                                    },
-                                    {
-                                        title: '🔒 Menu Dono',
-                                        description: 'Menu do dono do bot',
-                                        id: 'menu_menudono'
-                                    },
-                                    {
-                                        title: '📚 Lista de Menus',
-                                        description: 'Ver todos os menus',
-                                        id: 'menu_menus'
-                                    }
-                                ]
-                            }
-                        ]
-                    })
-                }
-            ]
+            buttons: botoes
         }
     };
 
@@ -699,13 +716,12 @@ async function iniciarAvisosDoPainel(sock, intervaloMs = 60000) {
                 await sock.sendMessage(jid, { text: n.mensagem });
             }
         } catch (e) {
-            // 🔥 SILENCIADO — não polui o log
+            // 🔥 SILENCIADO
         }
     };
 
     _notifTimer = setInterval(checar, intervaloMs);
 
-    // Roda 1x de imediato
     setTimeout(checar, 5000);
 }
 
