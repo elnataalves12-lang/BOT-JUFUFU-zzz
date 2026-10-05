@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { exec } = require('child_process');
-const { util: { promisify } } = require('util');
+const { promisify } = require('util');  
 const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
 const { verificarApiConfigurada } = require('./apiError.js');
 
