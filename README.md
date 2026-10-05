@@ -1,18 +1,35 @@
-# BOT-JUFUFU
-
-**JUFUFU BOT — UM BOT COMPLETO PARA WHATSAPP, COM DIVERSAS FUNCIONALIDADES**
-
 <div align="center">
-  <img src="IMG-20260928-WA0303.jpg" alt="JUFUFU BOT" width="900">
-</div>
+
+# 🤖 BOT-JUFUFU
+
+<img src="https://readme-typing-svg.herokuapp.com?color=FFC107&center=true&vCenter=true&size=32&width=900&height=80&lines=Bem-vindo+ao+JUFUFU+BOT!;Bot+de+WhatsApp+completo!;Feito+para+a+comunidade!"/>
 
 <br>
 
-<p align="center">
-  Bot de WhatsApp desenvolvido em Node.js, com diversos comandos de diversão, moderação, mídia, RPG e utilidades.
-</p>
+<img src="IMG-20260928-WA0303.jpg" alt="JUFUFU BOT" width="900">
 
----
+<br><br>
+
+**JUFUFU BOT — UM BOT COMPLETO PARA WHATSAPP, COM DIVERSAS FUNCIONALIDADES**
+
+<br>
+
+<a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz/stargazers">
+  <img src="https://img.shields.io/github/stars/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000"/>
+</a>
+<a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz/network/members">
+  <img src="https://img.shields.io/github/forks/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000"/>
+</a>
+<a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz/issues">
+  <img src="https://img.shields.io/github/issues/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000"/>
+</a>
+<a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz">
+  <img src="https://img.shields.io/github/languages/top/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=javascript&color=FFC107&labelColor=000000"/>
+</a>
+
+</div>
+
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 📖 Sobre o Jufufu
 
@@ -20,33 +37,51 @@ O **Jufufu** é um bot completo para WhatsApp feito em **Node.js**.
 
 Cada pessoa que baixar o projeto roda **sua própria cópia**, conectando **sua própria conta do WhatsApp**. O bot **não é um servidor público** — é um projeto **open source** para você instalar, personalizar e usar como quiser.
 
----
+<div align="center">
+
+### 🎯 O QUE VOCÊ VAI TER
+
+| 🎵 Música | 📹 Vídeo | 🎨 Figurinhas | 🎮 RPG |
+|:---:|:---:|:---:|:---:|
+| Play, YouTube, TTS | Download e envio | Criação e pack | Completo com empregos |
+| **🛡️ Moderação** | **🎭 Interações** | **👑 Menus** | **🎁 E muito mais** |
+| Anti-link, blacklist | Tapa, beijo, abraço | App externo | AFK, perfil, XP |
+
+</div>
+
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## ✨ Funcionalidades
 
-O Jufufu inclui, entre várias outras funções:
+<div align="center">
 
-- 🎵 **Play** — busca e envia músicas
-- 📹 **YouTube** — download e envio de vídeos
-- 🖼️ **Imagem com IA** — geração de imagens por texto
-- 📌 **Pinterest** — busca de imagens
-- 🎨 **Figurinhas** — criação e conversão de stickers
-- 🎬 **Sticker → GIF** — converte figurinha animada em GIF
-- 🔊 **TTS** — texto em áudio (formato PTT)
-- 🎙️ **Efeitos de áudio** — diversos efeitos em áudios
-- 👋 **Boas-vindas** — mensagem personalizada na entrada e saída
-- 🛡️ **Anti-link, anti-mídia e anti-palavrão**
-- ⬛ **Lista negra** — por número ou @, com ban automático
-- 📅 **Agendamentos** — abrir e fechar grupos automaticamente
-- 🏆 **Rankings** — feio, bonito, gay, corno, etc.
-- 🎭 **Interações** — tapa, abraço, beijo, etc.
-- 💍 **Casamento** entre usuários
-- 👁️ **Revelar** — revela mídias de visualização única
-- 👑 **Menus** administrados por app externo
-- 🎮 **RPG** — completo com empregos, mineração, favo de mel, cassino
-- 💤 **AFK**, **perfil**, **porcentagens divertidas** e muito mais
+### 🎵 MÍDIA E ENTRETENIMENTO
+> Play • YouTube • Imagem IA • Pinterest • TTS • Efeitos de Áudio
 
----
+### 🎨 FIGURINHAS
+> Criar • Converter • Pack • Sticker → GIF • Sticker → Imagem
+
+### 🛡️ MODERAÇÃO
+> Anti-Link • Anti-Mídia • Anti-Palavrão • Blacklist • Proteção ADM
+
+### 🎭 INTERAÇÃO
+> Tapa • Beijo • Abraço • Soco • Matar • Casamento • Ship
+
+### 🎮 RPG COMPLETO
+> Trabalhar • Minerar • Favo de Mel • Cassino • Jogo da Velha • Quiz
+
+### 🏆 RANKINGS E STATUS
+> Rank Ativo • XP • Nível • Rankings (feio, bonito, gay...)
+
+### 👑 MENUS E CONFIG
+> Menu Principal • Menu ADM • Menu Dono • Bem-vindos • Agendamentos
+
+### 💤 UTILIDADES
+> AFK • Perfil • BotInfo • Revelar view-once • PDF • EmojiMix
+
+</div>
+
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 📱 Instalação no Termux
 
@@ -59,7 +94,7 @@ Baixe o **Termux** pelo **F-Droid** (recomendado):
 > ⚠️ **Não use** a versão antiga da Play Store — ela está desatualizada.
 
 <div align="center">
-  <img src="IMG-20260928-WA0294.jpg" alt="JUFUFU BOT" width="900">
+  <img src="IMG-20260928-WA0294.jpg" alt="Termux" width="900">
 </div>
 
 ### 2. 🔄 Atualize o Termux
@@ -75,14 +110,17 @@ pkg update && pkg upgrade -y
 Execute:
 
 ```bash
-pkg install git nodejs ffmpeg -y
+pkg install git nodejs ffmpeg libwebp -y
 ```
 
 Isso instala:
 
-- **git** — para clonar o projeto
-- **nodejs** — para rodar o bot
-- **ffmpeg** — para processar áudios, vídeos e figurinhas
+| Pacote | Para que serve |
+|--------|----------------|
+| 🟢 **git** | Clonar o projeto |
+| 🟢 **nodejs** | Rodar o bot |
+| 🟢 **ffmpeg** | Processar áudios, vídeos e figurinhas |
+| 🟢 **libwebp** | Criar packs e figurinhas (cwebp + webpmux) |
 
 ### 4. 🧰 Conceda acesso ao armazenamento (opcional)
 
@@ -94,7 +132,7 @@ termux-setup-storage
 
 Aceite a permissão que aparecer na tela.
 
----
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 📥 Baixar o projeto
 
@@ -122,7 +160,7 @@ Execute:
 npm install
 ```
 
-### 8. Instale o pacote necessário para a API
+### 8. Instale o pacote necessário para as APIs
 
 Execute:
 
@@ -130,9 +168,9 @@ Execute:
 npm install node-fetch@2
 ```
 
-> 💡 Esse pacote é essencial para que o bot consiga fazer as requisições nas APIs.
+> 💡 **Essencial** para que o bot consiga fazer requisições nas APIs.
 
----
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## ⚙️ Configuração
 
@@ -154,13 +192,13 @@ nano config.js
 | `canalLink` | Link do seu canal do WhatsApp |
 | `donos` | Lista dos números autorizados como dono |
 | `menuApp.token` | Token do app de menus (se for usar) |
-| `jufufuAPI.apiKey` | Chave da API usada por alguns comandos (se for usar) |
+| `jufufuAPI.apiKey` | Chave da API usada por alguns comandos |
 
 > 💡 O `config.js` tem comentários explicando cada campo. Se não for usar algum comando específico, deixe a chave vazia.
 
 Salve com **Ctrl+O** → **Enter** → **Ctrl+X**.
 
----
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## ▶️ Iniciando o bot
 
@@ -179,8 +217,9 @@ O terminal vai pedir:
 ```
 👉 Digite seu número (ex: 5599999999999):
 ```
+
 <div align="center">
-  <img src="IMG-20260929-WA0058.jpg" alt="JUFUFU BOT" width="900">
+  <img src="IMG-20260929-WA0058.jpg" alt="Conectar WhatsApp" width="900">
 </div>
 
 Digite seu número **com DDI e DDD** (só números, sem `+` ou espaços).
@@ -194,26 +233,27 @@ Vai aparecer um **código de pareamento**, tipo:
 
 **No celular:**
 
-1. Abra o **WhatsApp**
-2. Toque em **3 pontinhos** → **Dispositivos vinculados**
+**1.** Abra o **WhatsApp**
+
+**2.** Toque em **3 pontinhos** → **Dispositivos vinculados**
 
 <div align="center">
-  <img src="IMG-20260929-WA0054.jpg" alt="JUFUFU BOT" width="900">
+  <img src="IMG-20260929-WA0054.jpg" alt="Dispositivos vinculados" width="900">
 </div>
 
-3. Toque em **Vincular um dispositivo**
+**3.** Toque em **Vincular um dispositivo**
 
 <div align="center">
-  <img src="IMG-20260929-WA0055.jpg" alt="JUFUFU BOT" width="900">
+  <img src="IMG-20260929-WA0055.jpg" alt="Vincular dispositivo" width="900">
 </div>
 
-4. Escolha **"Vincular com número de telefone"**
-5. Cole o código
+**4.** Escolha **"Vincular com número de telefone"**
+
+**5.** Cole o código
 
 <div align="center">
-  <img src="IMG-20260929-WA0057.jpg" alt="JUFUFU BOT" width="900">
+  <img src="IMG-20260929-WA0057.jpg" alt="Código" width="900">
 </div>
-
 
 ### 13. Verifique se está funcionando
 
@@ -221,19 +261,18 @@ Quando o bot conectar, vai aparecer no Termux:
 
 ```
   ╔═══════════════════════════════════╗
-  ║  🐯 𝙹𝚄𝙵𝚄𝙵𝚄-ᶻᶻᶻ_b̶o҈꓄ ACORDOU!            ║ 
+  ║  🐯 𝙹𝚄𝙵𝚄𝙵𝚄-ᶻᶻᶻ_b̶o҈꓄ ACORDOU!             ║ 
   ║  Mestre, tô pronta pra missão!          ║     
   ╚═══════════════════════════════════╝
 ```
 
 <div align="center">
-  <img src="IMG-20260929-WA0059.jpg" alt="JUFUFU BOT" width="900">
+  <img src="IMG-20260929-WA0059.jpg" alt="Bot Online" width="900">
 </div>
-
 
 Agora manda `°menu` em qualquer grupo onde o bot está, e ele deve responder.
 
----
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 📂 Estrutura básica do projeto
 
@@ -255,11 +294,16 @@ BOT-JUFUFU-zzz/
 │   ├── rpgSystem.js
 │   ├── blacklist.js
 │   ├── revelar.js
+│   ├── mensagens.js
+│   ├── emojimix.js
+│   ├── pack.js
+│   ├── pdf.js
+│   ├── ping.js
 │   └── ... (diversos outros)
 └── session/              → sessão do WhatsApp (criada ao parear)
 ```
 
----
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 🔁 Iniciar novamente depois
 
@@ -272,50 +316,108 @@ npm start
 
 A sessão fica salva na pasta `session/`, então **não precisa parear de novo** — desde que não tenha feito logout.
 
----
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
+
+## 🛠️ Tecnologias Usadas
+
+<div align="center">
+
+<a href="https://nodejs.org/" target="_blank">
+  <img src="https://img.icons8.com/color/96/000000/nodejs.png" alt="Node.js" width="80"/>
+</a>
+<a href="https://www.javascript.com/" target="_blank">
+  <img src="https://img.icons8.com/color/96/000000/javascript--v1.png" alt="JavaScript" width="80"/>
+</a>
+<a href="https://git-scm.com/" target="_blank">
+  <img src="https://img.icons8.com/color/96/000000/git.png" alt="Git" width="80"/>
+</a>
+<a href="https://www.whatsapp.com/" target="_blank">
+  <img src="https://img.icons8.com/color/96/000000/whatsapp.png" alt="WhatsApp" width="80"/>
+</a>
+<a href="https://ffmpeg.org/" target="_blank">
+  <img src="https://img.icons8.com/color/96/000000/video.png" alt="FFmpeg" width="80"/>
+</a>
+<a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz" target="_blank">
+  <img src="https://img.icons8.com/color/96/000000/github--v1.png" alt="GitHub" width="80"/>
+</a>
+
+<br><br>
+
+| 🟢 **Node.js** | 🟡 **JavaScript** | 🟠 **Git** | 🟢 **WhatsApp** | 🔵 **FFmpeg** | ⚫ **GitHub** |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| Runtime | Linguagem | Versionamento | Conexão | Mídia | Código |
+
+</div>
+
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 🔒 Segurança
 
-Nunca publique ou compartilhe:
+<div align="center">
 
-- ❌ Tokens de API
-- ❌ Chaves (`apiKey`)
-- ❌ Senhas
-- ❌ Sessões do WhatsApp (pasta `session/`)
-- ❌ Códigos de conexão
-- ❌ Credenciais pessoais
+### ⚠️ NUNCA PUBLIQUE OU COMPARTILHE
+
+| ❌ | ❌ | ❌ |
+|:---:|:---:|:---:|
+| Tokens de API | Chaves (`apiKey`) | Senhas |
+| Sessões do WhatsApp | Códigos de conexão | Credenciais pessoais |
+| Pasta `session/` | Arquivo `database.json` | Arquivo `config.js` |
+
+</div>
 
 **Cada pessoa deve rodar sua própria cópia e conectar sua própria conta do WhatsApp.**
 
----
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 📢 Canal oficial
 
 Atualizações, avisos e suporte acontecem no canal oficial do Jufufu:
 
-🔗 [Canal do Jufufu no WhatsApp](https://whatsapp.com/channel/0029VbDHw0fAO7RBFTJ3rn1e)
+<div align="center">
 
----
+<a href="https://whatsapp.com/channel/0029VbDHw0fAO7RBFTJ3rn1e" target="_blank">
+  <img src="https://img.shields.io/badge/ENTRAR%20NO%20CANAL-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=000000" alt="Canal do WhatsApp"/>
+</a>
+
+</div>
+
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## 🔗 Links importantes
 
-- 📦 **Repositório oficial:** [BOT-JUFUFU-zzz](https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz.git)
-- 📢 **Canal oficial:** [WhatsApp](https://whatsapp.com/channel/0029VbDHw0fAO7RBFTJ3rn1e)
-- 🎛️ **App de menus:** [Quick Menu Bot](https://quick-menu-bot.lovable.app/inicio)
-- 🌐 **Portal das APIs:** [JU API Web](https://ju-api-web-app-qgj9.bolt.host/)
+<div align="center">
 
----
+| 🔗 | Link |
+|:---:|:---|
+| 📦 **Repositório oficial** | [BOT-JUFUFU-zzz](https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz.git) |
+| 📢 **Canal oficial** | [WhatsApp](https://whatsapp.com/channel/0029VbDHw0fAO7RBFTJ3rn1e) |
+| 🎛️ **App de menus** | [Quick Menu Bot](https://quick-menu-bot.lovable.app/inicio) |
+| 🌐 **Portal das APIs** | [JU API Web](https://ju-api-web-app-qgj9.bolt.host/) |
+
+</div>
+
+<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
 
 ## ⭐ Apoie o projeto
 
-Se o Jufufu foi útil para você, considere deixar uma **⭐** no repositório do GitHub.
-
----
-
 <div align="center">
+
+Se o Jufufu foi útil para você, considere deixar uma **⭐** no repositório!
+
+<br><br>
+
+<a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz/stargazers">
+  <img src="https://img.shields.io/github/stars/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000&label=DAR%20UMA%20ESTRELA"/>
+</a>
+
+<br><br>
 
 ### 🤖 JUFUFU BOT
 
 **Feito para a comunidade.** ❤️
+
+<br>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=FFC107&height=120&section=footer&text=Obrigado%20por%20visitar!&fontSize=30&fontColor=000000"/>
 
 </div>
