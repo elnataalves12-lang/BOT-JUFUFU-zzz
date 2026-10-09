@@ -1,5 +1,5 @@
 
-```markdown
+markdown
 <div align="center">
 
 <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=2800&pause=800&color=FFC107&center=true&vCenter=true&multiline=true&width=900&height=140&lines=%F0%9F%90%AF+BEM-VINDO+AO+JUFUFU+BOT+%F0%9F%90%AF;Bot+de+WhatsApp+completo+em+Node.js;Feito+para+a+comunidade+%E2%9C%A8" alt="Jufufu Typing"/>
