@@ -33,6 +33,11 @@ const { cmdPdf } = require('./services/pdf.js');
 const { cmdPack, responderBotaoPack } = require('./services/pack.js');
 const { cmdEmojiMix } = require('./services/emojimix.js');
 const { initModule: initPing, cmdPing } = require('./services/ping.js');
+const { cmdEnquete } = require('./services/enquete.js');
+const { cmdNews } = require('./services/news.js');
+const { cmdDeepSeek } = require('./services/deepseek.js');
+const { cmdGpt } = require('./services/gpt.js');
+const { cmdGemini } = require('./services/gemini.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -204,6 +209,16 @@ const {
     cmdAceitarSolicitacoes,
     cmdListarSolicitacoes
 } = require('./services/joinRequests.js');
+
+const { 
+    cmdTtk, 
+    cmdTtkAudio, 
+    cmdFb, 
+    cmdInsta, 
+    cmdAnime, 
+    cmdAnimeNews, 
+    cmdTextPro 
+} = require('./services/morie.js');
 
 const DB_PATH = path.join(process.cwd(), 'database.json');
 if (fs.existsSync(DB_PATH)) {
@@ -1383,6 +1398,14 @@ else if (comando === 'setmenuaudio' || comando === 'setmenuaudiodono') {
         downloadMediaMessage, P
     });
 }
+else if (comando === 'setprefix' || comando === 'setprefixo' || comando === 'resetprefix' || comando === 'resetprefixo') {
+    await tratarComandoMenu({
+        comando, chat, sock, msg, sender,
+        enviarResposta,
+        verificarAdmin, isDono,
+        downloadMediaMessage, P
+    });
+}
 else if (comando === 'resetmenu') {
     await tratarComandoMenu({
         comando, chat, sock, msg, sender,
@@ -1438,6 +1461,32 @@ else if (comando === 'aprovar') {
 // ===== LISTAR SOLICITAÇÕES =====
 else if (comando === 'solicitacoes') {
     await cmdListarSolicitacoes(sock, chat, sender, msg, enviarResposta, reagir, verificarAdmin, isDono, CONFIG);
+}
+// ===== GEMINI =====
+else if (comando === 'gemini') {
+    await cmdGemini(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== GPT =====
+else if (comando === 'gpt') {
+    await cmdGpt(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== DEEPSEEK =====
+else if (comando === 'deepseek' || comando === 'ds') {
+    await cmdDeepSeek(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'noticias' || comando === 'news' || comando === 'notícia') {
+    await cmdNews(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== MORIE (Node.js) ====
+else if (comando === 'anime') {
+    await cmdAnime(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'animenews') {
+    await cmdAnimeNews(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== ENQUETE =====
+else if (comando === 'enquete') {
+    await cmdEnquete(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
 }
 // ===== PING =====
 else if (comando === 'ping') {

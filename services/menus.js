@@ -1,8 +1,6 @@
 // ============================================================
 //  JUFUFU BOT • CONEXÃO COM O APP DE MENUS
 //  Arquivo: services/menus.js
-//
-//  Config da API no config.js → menuApp
 // ============================================================
 
 const fetch = require('node-fetch');
@@ -17,67 +15,39 @@ const APP_URL = CONFIG.menuApp?.baseUrl || '';
 const APP_TOKEN = CONFIG.menuApp?.token || '';
 const APP_TIMEOUT = CONFIG.menuApp?.timeout || 15000;
 
-// 🔥 LINK DO APP (fixo, sempre o mesmo)
 const APP_LINK = 'https://quick-menu-bot.lovable.app/inicio';
 
-const MENUS = ['menu', 'menus', 'menuadm', 'menubrincadeira', 'menudono'];
-
 // ============================================================
-// MENSAGEM DE ERRO PADRONIZADA
+// PREFIXO DINÂMICO
 // ============================================================
 
-function mensagemAppNaoConfigurado(botNome) {
-    return `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ ⚠️ *APP DE MENUS*
-╰━━━━━━━━━━━━━━━━━━━━━⬢
+const PREFIXO_DO_CONFIG = String(CONFIG.prefix || CONFIG.prefixo || '°').trim();
+let PREFIXO_ATUAL = PREFIXO_DO_CONFIG;
 
-┃ 🔑 O app de menus não está
-┃ configurado neste bot!
+function aplicarPrefixoNoBot(novo) {
+    const px = String(novo || '').trim() || PREFIXO_DO_CONFIG;
+    PREFIXO_ATUAL = px;
 
-┃ 📌 *Para ativar, é grátis:*
+    for (const k of ['prefix', 'prefixo', 'PREFIX']) {
+        if (k in CONFIG || k === 'prefix') {
+            try { CONFIG[k] = px; } catch (_) {}
+        }
+    }
 
-┃ 1️⃣ Acesse o site
-┃    🌐 ${APP_LINK}
+    try {
+        global.prefix = px;
+        global.prefixo = px;
+    } catch (_) {}
 
-┃ 2️⃣ Crie sua conta grátis
-
-┃ 3️⃣ Copie o *token* no painel
-
-┃ 4️⃣ Cole no *config.js*:
-┃
-┃    menuApp: {
-┃      token: 'SEU_TOKEN_AQUI'
-┃    }
-
-┃ 5️⃣ Reinicie o bot
-
-╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 🎁 *100% GRATUITO*
-┃ 🌐 ${APP_LINK}
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-『 ${botNome} 』`;
+    return px;
 }
 
-function mensagemAppOffline(botNome) {
-    return `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ ⚠️ *APP DE MENUS OFFLINE*
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-
-┃ 📡 Não foi possível conectar
-┃ ao app de menus agora.
-
-┃ 📌 Tente novamente em
-┃ alguns minutos.
-
-┃ 🔗 *Site do app:*
-┃ 🌐 ${APP_LINK}
-
-╰━━━━━━━━━━━━━━━━━━━━━⬢
-『 ${botNome} 』`;
+function prefixoAtual() {
+    return PREFIXO_ATUAL;
 }
 
 // ============================================================
-//  DADOS DO BOT
+// DADOS DO BOT
 // ============================================================
 
 function primeiro(...valores) {
@@ -89,13 +59,20 @@ function primeiro(...valores) {
     return '';
 }
 
+function primeiroNumero(v) {
+    if (v === undefined || v === null) return '';
+    const s = Array.isArray(v) ? String(v[0] ?? '') : String(v);
+    const parte = s.split(/[,;|\n\/]+/).map((x) => x.trim()).find(Boolean) || '';
+    return parte.replace(/@.*$/, '').replace(/\D/g, '');
+}
+
 function dadosDoBot() {
     return {
         bot: primeiro(CONFIG.botNome, CONFIG.nomeBot, CONFIG.botName, CONFIG.nome),
-        dono: primeiro(CONFIG.donos?.[0], CONFIG.numerodono, CONFIG.dono),
-        prefix: primeiro(CONFIG.prefix, CONFIG.prefixo),
+        dono: primeiroNumero(primeiro(CONFIG.donos?.[0], CONFIG.numerodono, CONFIG.dono)),
+        prefix: PREFIXO_DO_CONFIG,
         versao: primeiro(CONFIG.versao, CONFIG.version),
-        contato: primeiro(CONFIG.contato, CONFIG.suporte)
+        contato: primeiroNumero(primeiro(CONFIG.contato, CONFIG.suporte))
     };
 }
 
@@ -130,7 +107,6 @@ async function comRetry(nome, fn, tentativas = TENTATIVAS) {
 }
 
 async function api(caminho, opcoes = {}, tentativas = TENTATIVAS) {
-    // 🔥 VALIDAÇÃO
     if (!APP_URL || APP_URL.includes('COLE_A_URL')) {
         const err = new Error('URL do app de menus não configurada');
         err.tipo = 'URL_VAZIA';
@@ -161,7 +137,6 @@ async function api(caminho, opcoes = {}, tentativas = TENTATIVAS) {
                 throw err;
             }
 
-            // 🔥 ERRO 500 → APP OFFLINE
             if (res.status >= 500) {
                 const err = new Error(`App de menus offline (${res.status})`);
                 err.tipo = 'APP_OFFLINE';
@@ -222,20 +197,71 @@ async function baixarCache(url) {
 }
 
 // ============================================================
-// ENVIA BOTÃO DO MENU (só a lista + canal)
+// MENSAGEM DE ERRO
+// ============================================================
+
+function mensagemAppNaoConfigurado(botNome) {
+    return `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ⚠️ *APP DE MENUS*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 🔑 O app de menus não está
+┃ configurado neste bot!
+
+┃ 📌 *Para ativar, é grátis:*
+
+┃ 1️⃣ Acesse o site
+┃    🌐 ${APP_LINK}
+
+┃ 2️⃣ Crie sua conta grátis
+
+┃ 3️⃣ Copie o *token* no painel
+
+┃ 4️⃣ Cole no *config.js*:
+┃
+┃    menuApp: {
+┃      token: 'SEU_TOKEN_AQUI'
+┃    }
+
+┃ 5️⃣ Reinicie o bot
+
+╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🎁 *100% GRATUITO*
+┃ 🌐 ${APP_LINK}
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${botNome} 』`;
+}
+
+function mensagemAppOffline(botNome) {
+    return `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ⚠️ *APP DE MENUS OFFLINE*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 📡 Não foi possível conectar
+┃ ao app de menus agora.
+
+┃ 📌 Tente novamente em
+┃ alguns minutos.
+
+┃ 🔗 *Site do app:*
+┃ 🌐 ${APP_LINK}
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${botNome} 』`;
+}
+
+// ============================================================
+// ENVIA BOTÃO DO MENU (com lista + canal)
 // ============================================================
 
 async function enviarBotaoMenu(chave, chat, sock, msg, dados) {
     const texto = dados.inicial || `📋 *${chave.toUpperCase()}*\n\nAbra a lista abaixo para escolher um menu:`;
     const botNome = dadosDoBot().bot || 'JUFUFU Bot';
 
-    // 🔥 LINK DO CANAL (vem do config.js)
     const canalLink = CONFIG.canalLink || '';
 
-    // 🔥 BOTÕES
     const botoes = [];
 
-    // 🔥 LISTA DE MENUS (organizada em 3 seções)
     botoes.push({
         name: 'single_select',
         buttonParamsJson: JSON.stringify({
@@ -280,7 +306,6 @@ async function enviarBotaoMenu(chave, chat, sock, msg, dados) {
         })
     });
 
-    // 🔥 BOTÃO DO CANAL (link do config.js)
     if (canalLink && canalLink.startsWith('http')) {
         botoes.push({
             name: 'cta_url',
@@ -291,13 +316,10 @@ async function enviarBotaoMenu(chave, chat, sock, msg, dados) {
         });
     }
 
-    // 🔥 MONTA A MENSAGEM INTERATIVA
     const interactiveMessage = {
         body: { text: texto },
         footer: { text: botNome },
-        nativeFlowMessage: {
-            buttons: botoes
-        }
+        nativeFlowMessage: { buttons: botoes }
     };
 
     const msgContent = generateWAMessageFromContent(chat, {
@@ -307,29 +329,40 @@ async function enviarBotaoMenu(chave, chat, sock, msg, dados) {
                     deviceListMetadata: {},
                     deviceListMetadataVersion: 2
                 },
-                interactiveMessage: interactiveMessage
+                interactiveMessage
             }
         }
     }, { userJid: sock.user.id });
 
-    await sock.relayMessage(chat, msgContent.message, {
-        messageId: msgContent.key.id,
-        additionalNodes: [
-            {
-                tag: 'biz',
-                attrs: {},
-                content: [
-                    {
-                        tag: 'interactive',
-                        attrs: { type: 'native_flow', v: '1' },
-                        content: [
-                            { tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }
-                        ]
-                    }
-                ]
-            }
-        ]
-    });
+    try {
+        await sock.relayMessage(chat, msgContent.message, {
+            messageId: msgContent.key.id,
+            additionalNodes: [
+                {
+                    tag: 'biz',
+                    attrs: {},
+                    content: [
+                        {
+                            tag: 'interactive',
+                            attrs: { type: 'native_flow', v: '1' },
+                            content: [
+                                { tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+    } catch (e) {
+        // 🔥 FALLBACK: sem additionalNodes
+        try {
+            await sock.relayMessage(chat, msgContent.message, {
+                messageId: msgContent.key.id
+            });
+        } catch (e2) {
+            throw e2;
+        }
+    }
 
     return msgContent;
 }
@@ -462,7 +495,6 @@ async function enviarMenuApp(chave, chat, sock, msg) {
     try {
         dados = await api(`/api/public/bot/menu?menu=${chave}&user=${numero}${paramsDoBot()}`);
     } catch (e) {
-        // 🔥 TOKEN NÃO CONFIGURADO
         if (e.tipo === 'TOKEN_VAZIO' || e.tipo === 'URL_VAZIA') {
             try {
                 await sock.sendMessage(chat, {
@@ -472,7 +504,6 @@ async function enviarMenuApp(chave, chat, sock, msg) {
             return;
         }
 
-        // 🔥 APP OFFLINE
         if (e.tipo === 'APP_OFFLINE') {
             try {
                 await sock.sendMessage(chat, {
@@ -482,7 +513,6 @@ async function enviarMenuApp(chave, chat, sock, msg) {
             return;
         }
 
-        // 🔥 OUTROS ERROS
         try {
             await sock.sendMessage(chat, {
                 text: `❌ Não foi possível carregar o menu.\n\n🌐 ${APP_LINK}`
@@ -666,22 +696,103 @@ async function cmdResetMenu(sock, chat, sender, msg, enviarResposta, isDono) {
 
 async function tratarComandoMenu(ctx) {
     const { comando, chat, sock, msg, sender, enviarResposta, verificarAdmin, isDono, downloadMediaMessage, P } = ctx;
-    const cmd = String(comando || '')
+
+    let bruto = String(comando || '').trim();
+    if (PREFIXO_ATUAL && bruto.startsWith(PREFIXO_ATUAL)) bruto = bruto.slice(PREFIXO_ATUAL.length);
+
+    const cmd = bruto
         .trim()
         .toLowerCase()
         .replace(/^[°!\/.#$%&*]+/, '');
 
+    // ---- SETPREFIX ----
+    if (['setprefix', 'setprefixo', 'resetprefix', 'resetprefixo'].includes(cmd)) {
+        if (!(await isDono(sender))) {
+            await enviarResposta(chat, sock, '🔒 Apenas o dono!', msg);
+            return true;
+        }
+
+        const m = msg?.message || {};
+        const texto = m.conversation || m.extendedTextMessage?.text || '';
+        const reset = cmd.startsWith('reset');
+        let valor = reset ? 'reset' : texto.trim().split(/\s+/).slice(1).join(' ').replace(/^<\s*|\s*>$/g, '').trim();
+
+        if (!valor) {
+            await enviarResposta(chat, sock,
+                `ℹ️ Use: ${PREFIXO_ATUAL}setprefix <novo prefixo>\nEx: ${PREFIXO_ATUAL}setprefix !\nPara voltar: ${PREFIXO_ATUAL}resetprefix`,
+                msg
+            );
+            return true;
+        }
+
+        if (!reset && (valor.length > 5 || /\s/.test(valor))) {
+            await enviarResposta(chat, sock, '❌ O prefixo deve ter até 5 caracteres e sem espaços.', msg);
+            return true;
+        }
+
+        try {
+            const j = await api('/api/public/bot/set', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ token: APP_TOKEN, acao: 'prefixo', valor })
+            }, 2);
+
+            const novo = aplicarPrefixoNoBot(j.prefix);
+            await enviarResposta(chat, sock, `✅ Prefixo alterado para *${novo}*`, msg);
+        } catch (e) {
+            await enviarResposta(chat, sock, `❌ Não consegui trocar o prefixo: ${e.message}`, msg);
+        }
+        return true;
+    }
+
+    // ---- MÍDIA ----
     if (cmd === 'setmenuimage') { await cmdSetMidia('image', sock, chat, sender, msg, enviarResposta, downloadMediaMessage, P, isDono); return true; }
     if (cmd === 'setmenuview' || cmd === 'setmenuvideo') { await cmdSetMidia('video', sock, chat, sender, msg, enviarResposta, downloadMediaMessage, P, isDono); return true; }
     if (cmd === 'setmenuaudio' || cmd === 'setmenuaudiodono') { await cmdSetMidia('audio', sock, chat, sender, msg, enviarResposta, downloadMediaMessage, P, isDono); return true; }
     if (cmd === 'resetmenu') { await cmdResetMenu(sock, chat, sender, msg, enviarResposta, isDono); return true; }
 
+    // ---- COMANDOS POR LINK ----
+    const acoesLink = { setfoto: 'imagem', setvideo: 'vídeo', setaudio: 'áudio', delmidia: 'delmidia' };
+
+    if (acoesLink[cmd]) {
+        if (!(await isDono(sender))) {
+            await enviarResposta(chat, sock, '🔒 Apenas o dono!', msg);
+            return true;
+        }
+
+        const m = msg?.message || {};
+        const texto = m.conversation || m.extendedTextMessage?.text || m.imageMessage?.caption || m.videoMessage?.caption || '';
+        const valor = texto.trim().split(/\s+/).slice(1).join(' ');
+
+        if (!valor && cmd !== 'delmidia') {
+            await enviarResposta(chat, sock, `ℹ️ Use: ${PREFIXO_ATUAL}${cmd} <link>`, msg);
+            return true;
+        }
+
+        try {
+            const r = await fetch(APP_URL.replace(/\/$/, '') + '/api/public/bot/set', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ token: APP_TOKEN, acao: acoesLink[cmd], valor })
+            });
+            const j = await r.json().catch(() => ({}));
+            _cacheMidia.clear();
+            await enviarResposta(chat, sock, j.ok ? '✅ Pronto! Já vale no próximo menu.' : `❌ ${j.error || 'falhou'}`, msg);
+        } catch (e) {
+            await enviarResposta(chat, sock, `❌ Não consegui falar com o app: ${e.message}`, msg);
+        }
+        return true;
+    }
+
+    // ---- MENUS ----
+    const MENUS = ['menu', 'menus', 'menuadm', 'menubrincadeira', 'menudono'];
     if (!MENUS.includes(cmd)) return false;
 
     if (cmd === 'menudono' && !(await isDono(sender))) {
         await enviarResposta(chat, sock, '🔒 SOMENTE O DONO!', msg);
         return true;
     }
+
     if (cmd === 'menuadm') {
         const admin = await verificarAdmin(sock, chat, sender);
         const dono = await isDono(sender);
@@ -704,7 +815,6 @@ let _notifTimer = null;
 async function iniciarAvisosDoPainel(sock, intervaloMs = 60000) {
     if (_notifTimer) clearInterval(_notifTimer);
 
-    // 🔥 SE NÃO TEM TOKEN, NÃO TENTA
     if (!APP_TOKEN || !APP_TOKEN.trim()) return;
 
     const checar = async () => {
@@ -716,13 +826,24 @@ async function iniciarAvisosDoPainel(sock, intervaloMs = 60000) {
                 await sock.sendMessage(jid, { text: n.mensagem });
             }
         } catch (e) {
-            // 🔥 SILENCIADO
+            // silenciado
         }
     };
 
     _notifTimer = setInterval(checar, intervaloMs);
-
     setTimeout(checar, 5000);
+}
+
+// ============================================================
+// SINCRONIZAR PREFIXO
+// ============================================================
+
+async function sincronizarPrefixo() {
+    try {
+        const j = await api('/api/public/bot/prefix?' + paramsDoBot().slice(1), {}, 2);
+        if (j && j.ok) aplicarPrefixoNoBot(j.prefix);
+    } catch (_) {}
+    return PREFIXO_ATUAL;
 }
 
 // ============================================================
@@ -743,6 +864,8 @@ module.exports = {
     tratarComandoMenu,
     responderBotaoMenu,
     dadosDoBot,
+    prefixoAtual,
+    sincronizarPrefixo,
     iniciarAvisosDoPainel,
     enviarMenuApp,
     enviarMenu,
