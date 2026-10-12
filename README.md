@@ -1,8 +1,6 @@
-
-```markdown
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=2800&pause=800&color=FFC107&center=true&vCenter=true&multiline=true&width=900&height=140&lines=%F0%9F%90%AF+BEM-VINDO+AO+JUFUFU+BOT+%F0%9F%90%AF;Bot+de+WhatsApp+completo+em+Node.js;Feito+para+a+comunidade+%E2%9C%A8" alt="Jufufu Typing"/>
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=2800&pause=800&color=FFC107&center=true&vCenter=true&width=900&height=140&lines=%F0%9F%90%AF+BEM-VINDO+AO+JUFUFU+BOT+%F0%9F%90%AF;Bot+de+WhatsApp+completo+em+Node.js;Feito+para+a+comunidade+%E2%9C%A8" alt="Jufufu Typing"/>
 
 <br>
 
@@ -66,7 +64,7 @@ Cada pessoa que baixar o projeto roda **sua própria cópia**, conectando **sua 
 
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=16&duration=2500&pause=600&color=FFC107&center=true&vCenter=true&width=600&lines=%F0%9F%8E%B5+M%C3%8DDIA+%26+ENTRETENIMENTO;%F0%9F%8E%A8+FIGURINHAS+%26+PACKS;%F0%9F%9B%A1%EF%B8%8F+MODERA%C3%87%C3%83O+INTELIGENTE;%F0%9F%8E%AD+INTERA%C3%87%C3%95ES+E+CASAMENTO;%F0%9F%8E%AE+RPG+COMPLETO;%F0%9F%8F%86+RANKINGS+E+XP;%F0%9F%91%91+MENUS+PERSONALIZADOS;%F0%9F%92%A4+UTILIDADES+E+MAIS" alt="Features Typing"/>
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=16&duration=2500&pause=600&color=FFC107&center=true&vCenter=true&width=600&height=60&lines=%F0%9F%8E%B5+M%C3%8DDIA+%26+ENTRETENIMENTO;%F0%9F%8E%A8+FIGURINHAS+%26+PACKS;%F0%9F%9B%A1%EF%B8%8F+MODERA%C3%87%C3%83O+INTELIGENTE;%F0%9F%8E%AD+INTERA%C3%87%C3%95ES+E+CASAMENTO;%F0%9F%8E%AE+RPG+COMPLETO;%F0%9F%8F%86+RANKINGS+E+XP;%F0%9F%91%91+MENUS+PERSONALIZADOS;%F0%9F%92%A4+UTILIDADES+E+MAIS" alt="Features Typing"/>
 
 <br>
 
@@ -106,7 +104,7 @@ Cada pessoa que baixar o projeto roda **sua própria cópia**, conectando **sua 
 ## 📱 〘 𝕀ℕ𝕊𝕋𝔸𝕃𝔸ÇÃ𝕆 ℕ𝕆 𝕋𝔼ℝ𝕄𝕌𝕏 〙
 
 <div align="center">
-<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=18&duration=2200&pause=500&color=FFC107&center=true&vCenter=true&width=500&lines=%F0%9F%93%A5+Passo+1+%E2%86%92+Instale+o+Termux;%F0%9F%94%84+Passo+2+%E2%86%92+Atualize+o+Termux;%F0%9F%93%A6+Passo+3+%E2%86%92+Instale+os+requisitos" alt="Steps"/>
+<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=18&duration=2200&pause=500&color=FFC107&center=true&vCenter=true&width=500&height=60&lines=%F0%9F%93%A5+Passo+1+%E2%86%92+Instale+o+Termux;%F0%9F%94%84+Passo+2+%E2%86%92+Atualize+o+Termux;%F0%9F%93%A6+Passo+3+%E2%86%92+Instale+os+requisitos" alt="Steps"/>
 </div>
 
 ### 🥇 Passo 1 — Instale o Termux
@@ -124,7 +122,7 @@ Baixe o **Termux** pelo **F-Droid** (recomendado):
 > ⚠️ **Não use** a versão antiga da Play Store — ela está desatualizada.
 
 <div align="center">
-  <img src="IMG-20260928-WA0294.jpg" alt="Termux" width="900">
+  <img src="IMG-20261012-WA0010.jpg" alt="Termux" width="900">
 </div>
 
 ### 🥈 Passo 2 — Atualize o Termux
@@ -181,13 +179,13 @@ cd BOT-JUFUFU-zzz
 npm install
 ```
 
-🌐 Passo 8 — Instale o pacote de requisições
+🌐 Passo 8 — Instale os pacotes de requisições e PDF
 
 ```bash
-npm install node-fetch@2
+npm install node-fetch@2 pdfkit
 ```
 
-💡 Essencial para que o bot consiga fazer requisições nas APIs (YouTube, Pinterest, Anime, etc).
+💡 Essencial para que o bot consiga fazer requisições nas APIs (YouTube, Pinterest, Anime, etc) e gerar arquivos PDF.
 
 <div align="center">
 <img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900">
@@ -205,14 +203,15 @@ nano config.js
 
 <div align="center">
 
-Campo O que é
-prefix Prefixo dos comandos (ex: °)
-botNome Nome do bot
-versao Versão exibida no °bot
-canalLink Link do seu canal do WhatsApp
-donos Lista dos números autorizados como dono
-menuApp.token Token do app de menus (se for usar)
-jufufuAPI.apiKey Chave da API (YouTube, Anime, TTS, etc)
+| Campo | O que é |
+|:---:|:---|
+| `prefix` | Prefixo dos comandos (ex: °) |
+| `botNome` | Nome do bot |
+| `versao` | Versão exibida no °bot |
+| `canalLink` | Link do seu canal do WhatsApp |
+| `donos` | Lista dos números autorizados como dono |
+| `menuApp.token` | Token do app de menus (se for usar) |
+| `jufufuAPI.apiKey` | Chave da API (YouTube, Anime, TTS, etc) |
 
 </div>
 
@@ -241,7 +240,7 @@ O terminal vai pedir:
 ```
 
 <div align="center">
-  <img src="IMG-20260929-WA0058.jpg" alt="Conectar WhatsApp" width="900">
+  <img src="IMG-20261012-WA0013.jpg" alt="Conectar WhatsApp" width="900">
 </div>
 
 Digite seu número com DDI e DDD (só números, sem + ou espaços).
@@ -372,12 +371,11 @@ A sessão fica salva na pasta session/, então não precisa parear de novo — d
   <img src="https://img.icons8.com/color/96/000000/github--v1.png" alt="GitHub" width="80"/>
 </a>
 
+<br><br>
 
-
-
-
-🟢 Node.js 🟡 JavaScript 🟠 Git 🟢 WhatsApp 🔵 FFmpeg ⚫ GitHub
-Runtime Linguagem Versionamento Conexão Mídia Código
+| 🟢 **Node.js** | 🟡 **JavaScript** | 🟠 **Git** | 🟢 **WhatsApp** | 🔵 **FFmpeg** | ⚫ **GitHub** |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| Runtime | Linguagem | Versionamento | Conexão | Mídia | Código |
 
 </div>
 
@@ -391,10 +389,11 @@ Runtime Linguagem Versionamento Conexão Mídia Código
 
 ⚠️ ❰ ℕ𝕌ℕℂ𝔸 ℙ𝕌𝔹𝕃𝕀ℚ𝕌𝔼 𝕆𝕌 ℂ𝕆𝕄ℙ𝔸ℝ𝕋𝕀𝕃ℍ𝔼 ❱
 
-❌ ❌ ❌
-Tokens de API Chaves (apiKey) Senhas
-Sessões do WhatsApp Códigos de conexão Credenciais pessoais
-Pasta session/ Arquivo database.json Arquivo config.js
+| ❌ | ❌ | ❌ |
+|:---:|:---:|:---:|
+| **Tokens de API** | **Chaves (apiKey)** | **Senhas** |
+| **Sessões do WhatsApp** | **Códigos de conexão** | **Credenciais pessoais** |
+| **Pasta session/** | **Arquivo database.json** | **Arquivo config.js** |
 
 </div>
 
@@ -424,11 +423,12 @@ Atualizações, avisos e suporte acontecem no canal oficial do Jufufu:
 
 <div align="center">
 
-🔗 Link
-📦 Repositório oficial BOT-JUFUFU-zzz
-📢 Canal oficial WhatsApp
-🎛️ App de menus Quick Menu Bot
-🌐 Portal das APIs JU API Web
+| 🔗 | Link |
+|:---:|:---|
+| 📦 | **Repositório oficial** [BOT-JUFUFU-zzz](https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz) |
+| 📢 | **Canal oficial** [WhatsApp](https://whatsapp.com/channel/0029VbDHw0fAO7RBFTJ3rn1e) |
+| 🎛️ | **App de menus** [Quick Menu Bot](https://github.com/elnataalves12-lang) |
+| 🌐 | **Portal das APIs** [JU API Web](https://github.com/elnataalves12-lang) |
 
 </div>
 
@@ -442,17 +442,13 @@ Atualizações, avisos e suporte acontecem no canal oficial do Jufufu:
 
 <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=20&duration=2000&pause=500&color=FFC107&center=true&vCenter=true&width=600&height=50&lines=%E2%AD%90+Deixe+uma+estrela+no+reposit%C3%B3rio!;%F0%9F%92%9B+Sua+ajuda+%C3%A9+muito+importante!;%F0%9F%9A%80+Vamos+crescer+juntos!" alt="Star"/>
 
-
-
-
+<br>
 
 <a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz/stargazers">
   <img src="https://img.shields.io/github/stars/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000&label=DAR%20UMA%20ESTRELA"/>
 </a>
 
-
-
-
+<br><br>
 
 🐯 𝕁𝕌𝔽𝕌𝔽𝕌 𝔹𝕆𝕋
 
@@ -463,4 +459,3 @@ Feito para a comunidade. ❤️
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,13,14,15,16&height=140&section=footer&text=Obrigado%20por%20visitar!&fontSize=35&fontColor=000000&animation=twinkling"/>
 
 </div>
-```

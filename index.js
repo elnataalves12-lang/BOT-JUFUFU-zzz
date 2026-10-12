@@ -38,6 +38,7 @@ const { cmdNews } = require('./services/news.js');
 const { cmdDeepSeek } = require('./services/deepseek.js');
 const { cmdGpt } = require('./services/gpt.js');
 const { cmdGemini } = require('./services/gemini.js');
+const { cmdLinkGrupo } = require('./services/linkGroup.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -1461,6 +1462,10 @@ else if (comando === 'aprovar') {
 // ===== LISTAR SOLICITAÇÕES =====
 else if (comando === 'solicitacoes') {
     await cmdListarSolicitacoes(sock, chat, sender, msg, enviarResposta, reagir, verificarAdmin, isDono, CONFIG);
+}
+// ===== LINK DO GRUPO (com botões) =====
+else if (comando === 'linkgp') {
+    await cmdLinkGrupo(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
 }
 // ===== GEMINI =====
 else if (comando === 'gemini') {
