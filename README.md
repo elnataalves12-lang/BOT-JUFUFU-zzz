@@ -261,13 +261,13 @@ Vai aparecer um código de pareamento, tipo:
 2. Toque em 3 pontinhos → Dispositivos vinculados
 
 <div align="center">
-  <img src="IMG-20260929-WA0054.jpg" alt="Dispositivos vinculados" width="900">
+  <img src="IMG-20261012-WA0015.jpg" alt="Dispositivos vinculados" width="900">
 </div>
 
 3. Toque em Vincular um dispositivo
 
 <div align="center">
-  <img src="IMG-20260929-WA0055.jpg" alt="Vincular dispositivo" width="900">
+  <img src="IMG-20261012-WA0011.jpg" alt="Vincular dispositivo" width="900">
 </div>
 
 4. Escolha "Vincular com número de telefone"
@@ -275,7 +275,7 @@ Vai aparecer um código de pareamento, tipo:
 5. Cole o código
 
 <div align="center">
-  <img src="IMG-20260929-WA0057.jpg" alt="Código" width="900">
+  <img src="IMG-20261012-WA0012.jpg" alt="Código" width="900">
 </div>
 
 ✅ Passo 13 — Verifique se está funcionando
@@ -290,7 +290,7 @@ Quando o bot conectar, vai aparecer no Termux:
 ```
 
 <div align="center">
-  <img src="IMG-20260929-WA0059.jpg" alt="Bot Online" width="900">
+  <img src="IMG-20261012-WA0014.jpg" alt="Bot Online" width="900">
 </div>
 
 Agora manda °menu em qualquer grupo onde o bot está, e ele deve responder.
