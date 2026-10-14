@@ -1,9 +1,8 @@
 // ==================== SISTEMA DE DONO ====================
 // services/dono.js
 // ============================================================
-// - Função isDono() independente
-// - Comando °verdono (todos podem usar)
-// - Aceita número, LID, JID
+// - isDono() resolve LID → PN automaticamente
+// - Comando °verdono
 // ============================================================
 
 const path = require('path');
@@ -12,6 +11,7 @@ const fs = require('fs');
 // ==================== VARIÁVEIS ====================
 let db = null;
 let CONFIG = null;
+let sockGlobal = null;
 
 // ==================== INICIALIZAR ====================
 function initModule(dbInstance, configInstance) {
@@ -19,41 +19,125 @@ function initModule(dbInstance, configInstance) {
     CONFIG = configInstance;
 }
 
-// ==================== LIMPAR ID (número, LID, JID) ====================
+// ==================== SETAR SOCK ====================
+function setSock(sockInstance) {
+    sockGlobal = sockInstance;
+}
+
+// ==================== LIMPAR ID (só números) ====================
 function limparId(str) {
     if (!str) return '';
-    return String(str).split('@')[0].split(':')[0];
+    return String(str).replace(/\D/g, '');
+}
+
+// ==================== COMPARAR 2 NÚMEROS ====================
+function mesmoNumero(a, b) {
+    if (!a || !b) return false;
+    const aNum = limparId(a);
+    const bNum = limparId(b);
+    if (!aNum || !bNum) return false;
+    if (aNum === bNum) return true;
+    if (aNum.length >= 10 && bNum.length >= 10) {
+        if (aNum.slice(-10) === bNum.slice(-10)) return true;
+    }
+    if (aNum.length >= 8 && bNum.length >= 8) {
+        if (aNum.slice(-8) === bNum.slice(-8)) return true;
+    }
+    return false;
+}
+
+// ==================== RESOLVER LID → PN ====================
+// 🔥 Varre TODOS os grupos que o bot está, procurando o LID
+// Quando acha, pega o .jid (número real)
+async function resolverLidParaPn(lid) {
+    if (!lid) return null;
+    const lidStr = String(lid);
+    if (!lidStr.includes('@lid')) return limparId(lidStr);
+
+    const lidNum = lidStr.split('@')[0].split(':')[0];
+
+    if (!sockGlobal) return lidNum;
+
+    try {
+        // 🔥 Tenta do store primeiro
+        let groups = {};
+
+        if (sockGlobal.store?.chats) {
+            for (const [jid, chat] of Object.entries(sockGlobal.store.chats)) {
+                if (jid.endsWith('@g.us')) groups[jid] = chat;
+            }
+        }
+
+        // 🔥 Se não achou, busca dos grupos
+        if (Object.keys(groups).length === 0) {
+            try {
+                groups = await sockGlobal.groupFetchAllParticipating();
+            } catch (e) {}
+        }
+
+        // 🔥 PROCURA O LID EM CADA GRUPO
+        for (const group of Object.values(groups)) {
+            if (!group?.participants) continue;
+
+            for (const p of group.participants) {
+                const pId = String(p.id || '');
+                const pLid = String(p.lid || '');
+                const pJid = String(p.jid || p.phoneNumber || '');
+
+                const pIdNum = pId.split('@')[0].split(':')[0];
+                const pLidNum = pLid.split('@')[0].split(':')[0];
+
+                // 🔥 ACHOU O LID
+                if (pIdNum === lidNum || pLidNum === lidNum) {
+                    if (pJid && pJid.includes('@s.whatsapp.net')) {
+                        return limparId(pJid);
+                    }
+                    if (pId.includes('@s.whatsapp.net')) {
+                        return limparId(pId);
+                    }
+                }
+            }
+        }
+
+    } catch (e) {
+        console.log('⚠️ Erro ao resolver LID:', e.message);
+    }
+
+    return lidNum;
 }
 
 // ==================== VERIFICAR SE É DONO ====================
 async function isDono(sender) {
     try {
         if (!sender) return false;
-
-        // 🔥 LIMPA O SENDER
-        const senderId = limparId(sender);
-
-        // 🔥 GARANTE QUE AS LISTAS EXISTEM
         if (!db) return false;
+
         if (!Array.isArray(db.donos)) db.donos = [];
         if (!CONFIG?.donos) return false;
         if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
 
-        // 🔥 JUNTA CONFIG + DB
         const todosDonos = [...CONFIG.donos, ...db.donos];
 
-        // 🔥 CHECA CADA DONO
+        // 🔥 PEGA NÚMERO DO SENDER (resolvendo LID)
+        let senderNum = limparId(sender);
+
+        if (String(sender).includes('@lid')) {
+            const pn = await resolverLidParaPn(sender);
+            if (pn) senderNum = pn;
+        }
+
+        // 🔥 COMPARA COM CADA DONO
         for (const dono of todosDonos) {
             if (!dono) continue;
-
-            const donoLimpo = limparId(dono);
-
-            if (donoLimpo === senderId) return true;
+            if (mesmoNumero(dono, senderNum)) {
+                return true;
+            }
         }
 
         return false;
 
     } catch (error) {
+        console.error('❌ Erro em isDono:', error.message);
         return false;
     }
 }
@@ -63,16 +147,22 @@ async function adicionarDono(sender) {
     if (!db) return false;
     if (!Array.isArray(db.donos)) db.donos = [];
 
-    const senderId = limparId(sender);
+    let senderNum = limparId(sender);
 
-    if (!db.donos.includes(senderId)) {
-        db.donos.push(senderId);
+    // 🔥 Se for LID, resolve
+    if (String(sender).includes('@lid')) {
+        const pn = await resolverLidParaPn(sender);
+        if (pn) senderNum = pn;
+    }
 
-        // 🔥 SALVA O DB
-        if (typeof global !== 'undefined' && global.salvarDB) {
-            global.salvarDB();
-        }
+    if (!senderNum) return false;
 
+    // 🔥 Verifica se já tem (comparando certo)
+    const jaTem = db.donos.some(d => mesmoNumero(d, senderNum));
+
+    if (!jaTem) {
+        db.donos.push(senderNum);
+        if (typeof global !== 'undefined' && global.salvarDB) global.salvarDB();
         return true;
     }
 
@@ -84,16 +174,18 @@ async function removerDono(sender) {
     if (!db) return false;
     if (!Array.isArray(db.donos)) db.donos = [];
 
-    const senderId = limparId(sender);
-    const antes = db.donos.length;
+    let senderNum = limparId(sender);
 
-    db.donos = db.donos.filter(d => limparId(d) !== senderId);
+    if (String(sender).includes('@lid')) {
+        const pn = await resolverLidParaPn(sender);
+        if (pn) senderNum = pn;
+    }
+
+    const antes = db.donos.length;
+    db.donos = db.donos.filter(d => !mesmoNumero(d, senderNum));
 
     if (db.donos.length !== antes) {
-        if (typeof global !== 'undefined' && global.salvarDB) {
-            global.salvarDB();
-        }
-
+        if (typeof global !== 'undefined' && global.salvarDB) global.salvarDB();
         return true;
     }
 
@@ -101,15 +193,11 @@ async function removerDono(sender) {
 }
 
 // ==================== SINCRONIZAR DONOS ====================
-// Remove do db.donos quem não está mais no config.donos
-// E adiciona no db.donos quem está no config.donos
 async function sincronizarDonos() {
     if (!db || !CONFIG) return;
-
     if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
     if (!Array.isArray(db.donos)) db.donos = [];
 
-    // 🔥 LIMPA O DB (só mantém quem tá no config)
     const donosConfig = CONFIG.donos.map(d => limparId(d));
 
     db.donos = db.donos.filter(d => {
@@ -117,7 +205,6 @@ async function sincronizarDonos() {
         return donosConfig.includes(dLimpo);
     });
 
-    // 🔥 ADICIONA NO DB QUEM TÁ NO CONFIG (pra facilitar buscas)
     for (const dono of CONFIG.donos) {
         const donoLimpo = limparId(dono);
         if (donoLimpo && !db.donos.includes(donoLimpo)) {
@@ -125,18 +212,14 @@ async function sincronizarDonos() {
         }
     }
 
-    if (typeof global !== 'undefined' && global.salvarDB) {
-        global.salvarDB();
-    }
+    if (typeof global !== 'undefined' && global.salvarDB) global.salvarDB();
 }
 
 // ==================== COMANDO °VERDONO ====================
-// Mostra o dono com foto e @
 async function cmdVerDono(chat, sock, sender, msg, enviarResposta, reagir, CONFIG_) {
     const cfg = CONFIG_ || CONFIG;
 
     try {
-        // 🔥 PEGA A LISTA DE DONOS
         const donos = Array.isArray(cfg.donos) ? cfg.donos : [];
 
         if (donos.length === 0) {
@@ -144,7 +227,6 @@ async function cmdVerDono(chat, sock, sender, msg, enviarResposta, reagir, CONFI
             return;
         }
 
-        // 🔥 PEGA O PRIMEIRO DONO
         const donoPrincipal = donos[0];
         const numeroDono = limparId(donoPrincipal);
 
@@ -153,18 +235,12 @@ async function cmdVerDono(chat, sock, sender, msg, enviarResposta, reagir, CONFI
             return;
         }
 
-        // 🔥 MONTA O JID
-        let jidDono = numeroDono.includes('@') ? numeroDono : numeroDono + '@s.whatsapp.net';
-
-        // 🔥 TENTA PEGAR A FOTO
+        let jidDono = numeroDono + '@s.whatsapp.net';
         let fotoUrl = null;
         try {
             fotoUrl = await sock.profilePictureUrl(jidDono, 'image');
-        } catch (e) {
-            fotoUrl = null;
-        }
+        } catch (e) {}
 
-        // 🔥 MONTA A MENSAGEM
         let texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
 ┃ 👑 *DONO DO BOT*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
@@ -184,13 +260,8 @@ async function cmdVerDono(chat, sock, sender, msg, enviarResposta, reagir, CONFI
         texto += `\n╰━━━━━━━━━━━━━━━━━━━━━⬢
 『 ${cfg.botNome || 'JUFUFU Bot'} 』`;
 
-        // 🔥 MENÇÕES (TODOS OS DONOS)
-        const mentions = donos.map(d => {
-            const n = limparId(d);
-            return n.includes('@') ? n : n + '@s.whatsapp.net';
-        }).filter(Boolean);
+        const mentions = donos.map(d => limparId(d) + '@s.whatsapp.net').filter(Boolean);
 
-        // 🔥 ENVIA
         if (fotoUrl) {
             await sock.sendMessage(chat, {
                 image: { url: fotoUrl },
@@ -204,9 +275,7 @@ async function cmdVerDono(chat, sock, sender, msg, enviarResposta, reagir, CONFI
             }, { quoted: msg });
         }
 
-        if (reagir) {
-            await reagir(sock, chat, msg.key.id, '👑');
-        }
+        if (reagir) await reagir(sock, chat, msg.key.id, '👑');
 
     } catch (error) {
         await enviarResposta(chat, sock, `❌ Erro: ${error.message}`, msg);
@@ -216,10 +285,13 @@ async function cmdVerDono(chat, sock, sender, msg, enviarResposta, reagir, CONFI
 // ==================== EXPORTAR ====================
 module.exports = {
     initModule,
+    setSock,
     isDono,
     adicionarDono,
     removerDono,
     sincronizarDonos,
     cmdVerDono,
-    limparId
+    limparId,
+    mesmoNumero,
+    resolverLidParaPn
 };

@@ -39,7 +39,6 @@ const { cmdDeepSeek } = require('./services/deepseek.js');
 const { cmdGpt } = require('./services/gpt.js');
 const { cmdGemini } = require('./services/gemini.js');
 const { cmdLinkGrupo } = require('./services/linkGroup.js');
-const { cmdVerDono } = require('./services/dono.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -212,6 +211,7 @@ const {
     cmdListarSolicitacoes
 } = require('./services/joinRequests.js');
 
+// ==================== IMPORTAÇÕES ====================
 const { 
     cmdTtk, 
     cmdTtkAudio, 
@@ -221,6 +221,8 @@ const {
     cmdAnimeNews, 
     cmdTextPro 
 } = require('./services/morie.js');
+
+
 
 const DB_PATH = path.join(process.cwd(), 'database.json');
 if (fs.existsSync(DB_PATH)) {
@@ -279,6 +281,18 @@ const initDB = () => {
   }
 };
 initDB();
+
+const {
+    initModule: initDono,
+    isDono: isDonoService,
+    adicionarDono,
+    removerDono,
+    sincronizarDonos,
+    cmdVerDono,
+    limparId,
+    setSock: setSockDono  
+} = require('./services/dono.js');
+initDono(db, CONFIG);
 
 // ==================== IMPORTAÇÕES DO RPG ====================
 const {
@@ -384,11 +398,6 @@ async function verificarAdmin(sock, chat, sender) {
     const metadata = await sock.groupMetadata(chat);
     return metadata.participants.some(p => p.id === sender && p.admin);
   } catch { return false; }
-}
-
-async function isDono(sender) {
-  const senderId = sender.split('@')[0];
-  return senderId === CONFIG.donoOriginal || (Array.isArray(db.donos) && db.donos.includes(senderId));
 }
 
 async function podeComandoAdmin(sock, chat, sender) {
@@ -908,137 +917,11 @@ async function deletarMensagem(sock, chat, msg) {
   }
 }
 
-// ==================== SISTEMA DE DONOS ====================
-
 // ==================== VERIFICAR SE É DONO ====================
+// 🔥 Delega pra função robusta do services/dono.js
 async function isDono(sender) {
-    try {
-        if (!sender) return false;
-        
-        const senderId = String(sender).split('@')[0];
-        
-        // 🔥 GARANTE QUE db.donos É UM ARRAY
-        if (!db.donos) db.donos = [];
-        if (!Array.isArray(db.donos)) db.donos = [];
-        
-        // 🔥 GARANTE QUE CONFIG.donos É UM ARRAY
-        if (!CONFIG.donos) CONFIG.donos = [];
-        if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
-        
-        // 🔥 VERIFICA NO CONFIG.donos
-        for (const dono of CONFIG.donos) {
-            if (!dono) continue;
-            const donoStr = String(dono);
-            if (senderId === donoStr || senderId.includes(donoStr) || donoStr.includes(senderId)) {
-                return true;
-            }
-        }
-        
-        // 🔥 VERIFICA NO BANCO DE DADOS (FALLBACK)
-        for (const dono of db.donos) {
-            if (!dono) continue;
-            const donoStr = String(dono);
-            if (senderId === donoStr || senderId.includes(donoStr) || donoStr.includes(senderId)) {
-                return true;
-            }
-        }
-        
-        return false;
-        
-    } catch (error) {
-        console.error('❌ Erro ao verificar dono:', error.message);
-        return false;
-    }
+    return await isDonoService(sender);
 }
-
-// ==================== ADICIONAR DONO ====================
-async function adicionarDono(chat, sock, sender, alvo, msg) {
-    // 🔥 VERIFICA SE É DONO
-    if (!await isDono(sender)) {
-        await enviarResposta(chat, sock, '🔒 Apenas donos podem adicionar outros donos!', msg);
-        return;
-    }
-    
-    if (!alvo) {
-        await enviarResposta(chat, sock, `⚠️ Marque alguém: ${CONFIG.prefix}adddono @user`, msg);
-        return;
-    }
-    
-    const alvoId = alvo.split('@')[0];
-    
-    // 🔥 VERIFICA SE JÁ É DONO
-    if (Array.isArray(CONFIG.donos) && CONFIG.donos.includes(alvoId)) {
-        await enviarResposta(chat, sock, `⚠️ @${alvoId} já é dono!`, msg, [alvo]);
-        return;
-    }
-    
-    // 🔥 ADICIONA AO CONFIG
-    if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
-    CONFIG.donos.push(alvoId);
-    
-    // 🔥 SALVA NO ARQUIVO
-    try {
-        const fs = require('fs');
-        const configPath = path.join(__dirname, 'config.js');
-        let configContent = fs.readFileSync(configPath, 'utf8');
-        
-        const donosStr = JSON.stringify(CONFIG.donos, null, 4);
-        const newConfigContent = configContent.replace(
-            /donos:\s*\[[^\]]*\]/,
-            `donos: ${donosStr}`
-        );
-        fs.writeFileSync(configPath, newConfigContent);
-        
-        await enviarResposta(chat, sock, `👑 @${alvoId} agora é dono!\n📌 Adicionado ao config.js`, msg, [alvo]);
-    } catch (err) {
-        console.error('❌ Erro ao salvar config:', err);
-        await enviarResposta(chat, sock, `❌ Erro ao salvar: ${err.message}`, msg);
-    }
-}
-
-// ==================== REMOVER DONO ====================
-async function removerDono(chat, sock, sender, alvo, msg) {
-    // 🔥 VERIFICA SE É DONO
-    if (!await isDono(sender)) {
-        await enviarResposta(chat, sock, '🔒 Apenas donos podem remover outros donos!', msg);
-        return;
-    }
-    
-    if (!alvo) {
-        await enviarResposta(chat, sock, `⚠️ Marque alguém: ${CONFIG.prefix}removerdono @user`, msg);
-        return;
-    }
-    
-    const alvoId = alvo.split('@')[0];
-    
-    if (!Array.isArray(CONFIG.donos) || !CONFIG.donos.includes(alvoId)) {
-        await enviarResposta(chat, sock, `⚠️ @${alvoId} não é dono!`, msg, [alvo]);
-        return;
-    }
-    
-    // 🔥 REMOVE DO CONFIG
-    CONFIG.donos = CONFIG.donos.filter(id => id !== alvoId);
-    
-    // 🔥 SALVA NO ARQUIVO
-    try {
-        const fs = require('fs');
-        const configPath = path.join(__dirname, 'config.js');
-        let configContent = fs.readFileSync(configPath, 'utf8');
-        
-        const donosStr = JSON.stringify(CONFIG.donos, null, 4);
-        const newConfigContent = configContent.replace(
-            /donos:\s*\[[^\]]*\]/,
-            `donos: ${donosStr}`
-        );
-        fs.writeFileSync(configPath, newConfigContent);
-        
-        await enviarResposta(chat, sock, `👋 @${alvoId} removido dos donos!`, msg, [alvo]);
-    } catch (err) {
-        console.error('❌ Erro ao salvar config:', err);
-        await enviarResposta(chat, sock, `❌ Erro ao salvar: ${err.message}`, msg);
-    }
-}
-
 // ==================== LISTAR DONOS ====================
 async function listarDonos(chat, sock, msg) {
     let texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
@@ -1776,11 +1659,72 @@ else if (comando === 'presentear' || comando === 'presente') {
 // ===== DONOS =====
 else if (comando === 'adddono' || comando === 'addowner') {
     const alvo = await obterMencionado(msg, texto);
-    await adicionarDono(chat, sock, sender, alvo, msg);
+    if (!alvo) {
+        await enviarResposta(chat, sock, `⚠️ Marque alguém: ${CONFIG.prefix}adddono @user`, msg);
+        return;
+    }
+    const alvoId = String(alvo).split('@')[0].split(':')[0];
+
+    // 🔥 Verifica se já é dono
+    const donosConfig = Array.isArray(CONFIG.donos) ? CONFIG.donos : [];
+    const donosDb = Array.isArray(db.donos) ? db.donos : [];
+    const todos = [...donosConfig, ...donosDb];
+    const jaEhDono = todos.some(d => String(d).split('@')[0].split(':')[0] === alvoId);
+
+    if (jaEhDono) {
+        await enviarResposta(chat, sock, `⚠️ @${alvoId} já é dono!`, msg, [alvo]);
+        return;
+    }
+
+    // 🔥 Adiciona no CONFIG
+    if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
+    CONFIG.donos.push(alvoId);
+
+    // 🔥 Salva no config.js
+    try {
+        const fs = require('fs');
+        const configPath = path.join(__dirname, 'config.js');
+        let configContent = fs.readFileSync(configPath, 'utf8');
+        const donosStr = JSON.stringify(CONFIG.donos, null, 4);
+        configContent = configContent.replace(/donos:\s*\[[^\]]*\]/, `donos: ${donosStr}`);
+        fs.writeFileSync(configPath, configContent);
+    } catch (err) {
+        console.error('❌ Erro ao salvar config:', err);
+    }
+
+    // 🔥 Adiciona no DB também
+    await adicionarDono(alvo);
+
+    await enviarResposta(chat, sock, `👑 @${alvoId} agora é dono!\n📌 Adicionado ao config.js`, msg, [alvo]);
 }
 else if (comando === 'removerdono' || comando === 'removeowner') {
     const alvo = await obterMencionado(msg, texto);
-    await removerDono(chat, sock, sender, alvo, msg);
+    if (!alvo) {
+        await enviarResposta(chat, sock, `⚠️ Marque alguém: ${CONFIG.prefix}removerdono @user`, msg);
+        return;
+    }
+    const alvoId = String(alvo).split('@')[0].split(':')[0];
+
+    // 🔥 Remove do CONFIG
+    if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
+    CONFIG.donos = CONFIG.donos.filter(d => String(d).split('@')[0].split(':')[0] !== alvoId);
+
+    // 🔥 Salva no config.js
+    try {
+        const fs = require('fs');
+        const configPath = path.join(__dirname, 'config.js');
+        let configContent = fs.readFileSync(configPath, 'utf8');
+        const donosStr = JSON.stringify(CONFIG.donos, null, 4);
+        configContent = configContent.replace(/donos:\s*\[[^\]]*\]/, `donos: ${donosStr}`);
+        fs.writeFileSync(configPath, configContent);
+    } catch (err) {
+        console.error('❌ Erro ao salvar config:', err);
+    }
+
+    // 🔥 Remove do DB também
+    await removerDono(alvo);
+
+    await enviarResposta(chat, sock, `👋 @${alvoId} removido dos donos!`, msg, [alvo]);
 }
 else if (comando === 'listadonos' || comando === 'donos') {
     await listarDonos(chat, sock, msg);
@@ -2263,6 +2207,9 @@ else if (comando === 'resetwsaida' || comando === 'resetsaida') {
 
 setOnBotOnline(async (sock) => {
     console.log('🔥 CALLBACK EXECUTOU!');
+    
+    setSockDono(sock); 
+    
     initRankings(db);
     initBlacklist(db);
     console.log('📅 Carregando agendamentos...');
