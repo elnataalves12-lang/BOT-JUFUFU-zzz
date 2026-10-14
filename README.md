@@ -6,7 +6,7 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,13,14,15,16&height=180&section=header&text=JUFUFU%20BOT&fontSize=70&fontAlignY=40&fontColor=000000&animation=twinkling&desc=Tiger%20Thiren%20%E2%80%A2%20WhatsApp%20Bot&descAlignY=62&descSize=20&descColor=000000"/>
 
-<img src="IMG-20260928-WA0303.jpg" alt="JUFUFU BOT" width="900">
+<img src="IMG-20261014-WA0081.jpg" alt="JUFUFU BOT" width="900">
 
 <br><br>
 

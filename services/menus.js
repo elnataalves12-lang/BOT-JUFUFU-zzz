@@ -272,7 +272,7 @@ async function enviarBotaoMenu(chave, chat, sock, msg, dados) {
                     rows: [
                         {
                             title: '📋 Menu Principal',
-                            description: 'Todos os comandos do bot',
+                            description: 'Comandos prinsipais do bot',
                             id: 'menu_menu'
                         },
                         {

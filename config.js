@@ -12,7 +12,7 @@ module.exports = {
     // ============================================================
     prefix: "°",                                    // Prefixo dos comandos (ex: °, !, ., /)
     botNome: "𝙹𝚄𝙵𝚄𝙵𝚄-ᶻᶻᶻ_b̶o҈꓄",                     // Nome do bot
-    versao: "3.0",                                  // Versão (aparece no °bot)
+    versao: "3.0",                                  // Versão 
     canalLink: "https://whatsapp.com/channel/SEU_CANAL_AQUI",  // Link do seu canal WhatsApp
 
 
@@ -38,7 +38,7 @@ module.exports = {
     // ============================================================
     menuApp: {
         baseUrl: 'https://quick-menu-bot.lovable.app',   // ⚠️ NÃO ALTERE
-        token: '',                                        // ← Cole seu token aqui
+        token: '', // ← Cole seu token aqui
         timeout: 15000                                    // ⚠️ NÃO ALTERE
     },
 
@@ -54,7 +54,7 @@ module.exports = {
     // ============================================================
     jufufuAPI: {
         baseUrl: 'https://ratovkgwkvqqcxnmeeky.supabase.co/functions/v1/ju-api',  // ⚠️ NÃO ALTERE
-        apiKey: '',                                                                // ← Cole sua chave aqui
+        apiKey: '',// ← Cole sua chave aqui
         timeout: 60000                                                             // ⚠️ NÃO ALTERE
     },
 

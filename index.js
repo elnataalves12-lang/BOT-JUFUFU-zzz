@@ -39,6 +39,7 @@ const { cmdDeepSeek } = require('./services/deepseek.js');
 const { cmdGpt } = require('./services/gpt.js');
 const { cmdGemini } = require('./services/gemini.js');
 const { cmdLinkGrupo } = require('./services/linkGroup.js');
+const { cmdVerDono } = require('./services/dono.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -1462,6 +1463,10 @@ else if (comando === 'aprovar') {
 // ===== LISTAR SOLICITAÇÕES =====
 else if (comando === 'solicitacoes') {
     await cmdListarSolicitacoes(sock, chat, sender, msg, enviarResposta, reagir, verificarAdmin, isDono, CONFIG);
+}
+// ===== VER DONO DO BOT (com foto) =====
+else if (comando === 'verdonobot' || comando === 'verdono') {
+    await cmdVerDono(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
 }
 // ===== LINK DO GRUPO (com botões) =====
 else if (comando === 'linkgp') {
