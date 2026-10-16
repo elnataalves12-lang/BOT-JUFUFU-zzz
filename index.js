@@ -82,6 +82,7 @@ let db = {
   nivelXp: {},
   antiPalavrao: {},
   levelConfig: {},
+  semPrefixo: {},
   agendamentos: {}
 };
 
@@ -245,40 +246,41 @@ global.db = db;
 global.salvarDB = salvarDB;
 // ==================== INICIALIZAR ESTRUTURAS DO DB ====================
 const initDB = () => {
-  // Estruturas existentes
-  ['mutados', 'rankAtivo', 'nivelAtivo', 'afk', 'donos', 'regras', 'warning', 'antiSpam', 'temporizador', 'nivelXp', 'levelConfig', 'agendamentos'].forEach(key => {
-    if (!db[key]) db[key] = {};
-  });
-  
- 
-  // 🔥 GARANTE QUE db.donos SEJA UM ARRAY (NÃO UM OBJETO)
-  if (!db.donos || !Array.isArray(db.donos)) {
-    db.donos = [];
-  }
-  
-  
-  if (!db.interactionGifs) {
-    db.interactionGifs = { tapa: "", matar: "", beijar: "", abracar: "", socar: "" };
-  }
-  if (!db.welcome) db.welcome = {};
-  if (!db.welcomeMsg) db.welcomeMsg = {};
-  if (!db.antilink) db.antilink = {};
-  if (!db.antilinkBan) db.antilinkBan = {};
-  
-  // 🔥 ADICIONAR CONFIGURAÇÃO DO MENU
-  if (!db.menuConfig) {
-    db.menuConfig = {
-      global: {
-        prefix: '°',
-        video: null,
-        image: null,
-        audio: null,
-        audioDono: null,
-        updatedBy: null,
-        updatedAt: null
-      }
-    };
-  }
+    // Estruturas básicas
+    ['mutados', 'rankAtivo', 'nivelAtivo', 'afk', 'donos', 'regras', 'warning', 'antiSpam', 'temporizador', 'nivelXp', 'levelConfig', 'agendamentos'].forEach(key => {
+        if (!db[key]) db[key] = {};
+    });
+
+    // 🔥 Sistema de comandos sem prefixo
+    if (!db.semPrefixo) db.semPrefixo = {};
+
+    // 🔥 Garante que db.donos seja um ARRAY
+    if (!db.donos || !Array.isArray(db.donos)) {
+        db.donos = [];
+    }
+
+    if (!db.interactionGifs) {
+        db.interactionGifs = { tapa: "", matar: "", beijar: "", abracar: "", socar: "" };
+    }
+    if (!db.welcome) db.welcome = {};
+    if (!db.welcomeMsg) db.welcomeMsg = {};
+    if (!db.antilink) db.antilink = {};
+    if (!db.antilinkBan) db.antilinkBan = {};
+
+    // 🔥 Configuração do menu
+    if (!db.menuConfig) {
+        db.menuConfig = {
+            global: {
+                prefix: '°',
+                video: null,
+                image: null,
+                audio: null,
+                audioDono: null,
+                updatedBy: null,
+                updatedAt: null
+            }
+        };
+    }
 };
 initDB();
 
@@ -324,6 +326,24 @@ const {
 // 🔥 INICIALIZAR O MÓDULO RPG
 initModule(db, CONFIG, enviarResposta, DB_PATH);
 
+// ==================== IMPORTAÇÕES ====================
+const {
+    initModule: initBanSticker,
+    processarBanSticker,
+    cmdSetBanSticker,
+    cmdDelBanSticker,
+    cmdVerBanSticker
+} = require('./services/banSticker.js');
+
+initBanSticker(db, salvarDB, verificarAdmin, isDono);
+
+// ==================== IMPORTAÇÕES ====================
+const {
+    initModule: initStatus,
+    cmdStatus
+} = require('./services/statusGrupo.js');
+
+initStatus(db, CONFIG, verificarAdmin, isDono);
 // ==================== MENSAGUENS ====================
 const {
     initModule: initMensagens,
@@ -1064,18 +1084,30 @@ mostrarArte();
 function configurarEventos(sock) {
     console.log('📅 Configurando eventos...');
 
+// ==================== COMANDOS SEM PREFIXO ====================
+// 🔥 Esses comandos podem rodar sem prefixo SE o modo estiver ATIVO
+const COMANDOS_SEM_PREFIXO = [
+    'del',
+    'apagar',
+    'ban',
+    'kick',
+    'b',
+    'vaza',
+    'promover',
+    'fechar',
+    'abrir',
+    'rebaixar'
+];
+
 sock.ev.on("group-participants.update", async (update) => {
     const { id, participants, action, author } = update;
 
     for (const p of participants) {
         const participantId = typeof p === 'string' ? p : (p.id || p);
 
-        // ============================================================
-        // 🔥 ENTRADA
-        // ============================================================
         if (action === 'add') {
-            // 🔥 VERIFICA BLACKLIST PRIMEIRO
-            await verificarBlacklistNaEntrada(sock, id, p);
+            // 🔥 VERIFICA BLACKLIST (passa o author pra saber se foi ADM)
+            await verificarBlacklistNaEntrada(sock, id, p, author);  // 🔥 AQUI, PASSA O AUTHOR
 
             // 🔥 DEPOIS MANDA BOAS-VINDAS (se não foi banido)
             await enviarBoasVindas(sock, id, p, db, CONFIG);
@@ -1139,7 +1171,7 @@ try {
 } catch (e) {}
 
       // 🔥 PEGA O TEXTO DE QUALQUER LUGAR (incluindo legendas de mídia)
-const texto = (
+let texto = (
     msg.message.conversation ||
     msg.message.extendedTextMessage?.text ||
     msg.message.imageMessage?.caption ||
@@ -1148,17 +1180,10 @@ const texto = (
     ''
 ).trim();
 
-const textoOriginal = texto.toLowerCase();
+let textoOriginal = texto.toLowerCase();
         
         const mencionados = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
         await verificarAfk(chat, sender, mencionados, sock, msg);
-
-        // 🔥 MITA - RESPOSTA AUTOMÁTICA
-if (chat.endsWith('@g.us') && !texto.startsWith(CONFIG.prefix)) {
-    try {
-        await processarMensagemAutomatica(sock, chat, sender, msg, texto, CONFIG);
-    } catch (e) {}
-}
 
 
         if (db.mutados[chat] && db.mutados[chat].includes(sender)) {
@@ -1194,11 +1219,12 @@ if (msg.message?.interactiveResponseMessage) {
                 await responderBotaoMenu(sock, chat, sender, msg, buttonId);
             } else if (buttonId.startsWith('pin_')) {
                 await responderBotaoPinterest(sock, chat, sender, msg, buttonId, CONFIG, reagir);
-            } else if (buttonId.startsWith('pack_')) {   // ← ADICIONA ESSA LINHA
+            } else if (buttonId.startsWith('pack_')) {
                 await responderBotaoPack(sock, chat, sender, msg, buttonId, CONFIG, reagir);
             } else if (buttonId.startsWith('opcao_')) {
                 await responderBotao(sock, chat, sender, msg, buttonId, CONFIG);
             }
+       
         } catch (e) {
             console.error('❌ Erro:', e.message);
         }
@@ -1222,6 +1248,37 @@ await processarAntiLinkSupremo(sock, chat, sender, msg, db, salvarDB, enviarResp
                 console.error('❌ Erro no anti-palavrão:', err.message);
             }
         }
+
+// 🔥 BAN POR FIGURINHA
+try {
+    await processarBanSticker(sock, chat, sender, msg);
+} catch (e) {
+    console.error('❌ Erro no bansticker:', e.message);
+}
+// ============================================================
+// 🔥 COMANDOS SEM PREFIXO (SÓ SE O MODO ESTIVER ATIVO)
+// ============================================================
+if (
+    chat.endsWith('@g.us') &&                    // só em grupos
+    db.semPrefixo?.[chat] === true &&            // modo ativo
+    texto &&                                     // tem texto
+    !texto.startsWith(CONFIG.prefix)             // NÃO começa com prefixo
+) {
+    const primeiroArgSemPrefixo = texto.toLowerCase().split(/\s+/)[0];
+
+    if (COMANDOS_SEM_PREFIXO.includes(primeiroArgSemPrefixo)) {
+        // 🔥 VERIFICA SE É ADM OU DONO
+        const isAdmin = await verificarAdmin(sock, chat, sender);
+        const isDonoBot = await isDono(sender);
+
+        if (isAdmin || isDonoBot) {
+            // 🔥 REESCREVE O TEXTO COM PREFIXO E CONTINUA O FLUXO
+            texto = CONFIG.prefix + texto;
+            textoOriginal = texto.toLowerCase(); // 🔥 ATUALIZA
+        }
+        
+    }
+}
 
       // ===== COMANDO PREFIXO =====
       if (textoOriginal === 'prefixo' || textoOriginal === 'prefix') {
@@ -1297,6 +1354,128 @@ else if (comando === 'resetmenu') {
         enviarResposta, verificarAdmin, isDono,
         downloadMediaMessage, P
     });
+}
+
+// ===== COMANDOS SEM PREFIXO =====
+else if (comando === 'semprefixo' || comando === 'noprefix' || comando === 'sp') {
+    // 🔥 SÓ ADM OU DONO
+    const isAdmin = await verificarAdmin(sock, chat, sender);
+    const isDonoBot = await isDono(sender);
+
+    if (!isAdmin && !isDonoBot) {
+        await enviarResposta(chat, sock, '🚫 Apenas administradores ou dono!', msg);
+        await reagir(sock, chat, msgId, emojiErro);
+        return;
+    }
+
+    const acao = args[0]?.toLowerCase();
+
+    // 🔥 GARANTE QUE EXISTE
+    if (!db.semPrefixo) db.semPrefixo = {};
+
+    if (acao === 'on' || acao === 'ativar') {
+        db.semPrefixo[chat] = true;
+        salvarDB();
+
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ✅ *MODO SEM PREFIXO ATIVADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 📌 *Agora ADMs podem usar:*
+┃
+┃ ▸ del / apagar
+┃ ▸ ban / kick
+┃ ▸ promover
+┃ ▸ rebaixar
+┃ ▸ fechar
+┃ ▸ abrir
+┃
+┃ 🔥 *Sem precisar do prefixo ${CONFIG.prefix}*
+┃
+┃ ⚠️ Só ADMs e donos podem usar.
+┃ 📌 Para desativar: ${CONFIG.prefix}semprefixo off
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        await reagir(sock, chat, msgId, emojiSucesso);
+        return;
+    }
+
+    if (acao === 'off' || acao === 'desativar') {
+        db.semPrefixo[chat] = false;
+        salvarDB();
+
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ❌ *MODO SEM PREFIXO DESATIVADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 📌 Os comandos agora só
+┃ funcionam com o prefixo
+┃ *${CONFIG.prefix}*
+
+┃ 📌 Para reativar:
+┃ ${CONFIG.prefix}semprefixo on
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        await reagir(sock, chat, msgId, emojiSucesso);
+        return;
+    }
+
+    // 🔥 SEM ARGUMENTO: MOSTRA STATUS
+    const ativo = db.semPrefixo[chat] === true;
+
+    await enviarResposta(chat, sock,
+        `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🔓 *COMANDOS SEM PREFIXO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 📊 Status: ${ativo ? '✅ ATIVADO' : '❌ DESATIVADO'}
+
+┃ 📌 *Comandos afetados:*
+┃ ▸ del / apagar
+┃ ▸ ban / kick / b / vaza
+┃ ▸ promover
+┃ ▸ rebaixar
+┃ ▸ fechar
+┃ ▸ abrir
+
+┃ 📌 *Como usar:*
+┃ ${CONFIG.prefix}semprefixo on - Ativar
+┃ ${CONFIG.prefix}semprefixo off - Desativar
+
+┃ 💡 Quando ATIVO, ADMs podem
+┃ mandar os comandos acima SEM
+┃ o prefixo ${CONFIG.prefix}.
+
+┃ ⚠️ Só ADMs e donos podem usar.
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+        msg
+    );
+    await reagir(sock, chat, msgId, '🔓');
+}
+
+// ===== STATUS DO GRUPO =====
+else if (comando === 'status' || comando === 'statusgp' || comando === 'gstatus') {
+    await cmdStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
+}
+// ===== BAN POR FIGURINHA =====
+else if (comando === 'setbansticker') {
+    await cmdSetBanSticker(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'delbansticker') {
+    await cmdDelBanSticker(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'verbansticker') {
+    await cmdVerBanSticker(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
 }
 
 // ===== PROTEÇÃO DE ADM =====
@@ -1658,6 +1837,27 @@ else if (comando === 'presentear' || comando === 'presente') {
         
 // ===== DONOS =====
 else if (comando === 'adddono' || comando === 'addowner') {
+    // 🔥 VERIFICA SE É DONO
+    if (!(await isDono(sender))) {
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🔒 *ACESSO NEGADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 👑 Apenas *donos* podem usar
+┃ este comando!
+
+┃ 📌 Você não está na lista
+┃ de donos do bot.
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        await reagir(sock, chat, msgId, emojiErro);
+        return;
+    }
+
     const alvo = await obterMencionado(msg, texto);
     if (!alvo) {
         await enviarResposta(chat, sock, `⚠️ Marque alguém: ${CONFIG.prefix}adddono @user`, msg);
@@ -1695,15 +1895,61 @@ else if (comando === 'adddono' || comando === 'addowner') {
     // 🔥 Adiciona no DB também
     await adicionarDono(alvo);
 
-    await enviarResposta(chat, sock, `👑 @${alvoId} agora é dono!\n📌 Adicionado ao config.js`, msg, [alvo]);
+    await enviarResposta(chat, sock,
+        `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 👑 *NOVO DONO ADICIONADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 👤 @${alvoId}
+┃ 📌 Adicionado ao config.js
+┃ ✅ Agora é dono do bot!
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+        msg,
+        [alvo]
+    );
+    await reagir(sock, chat, msgId, emojiSucesso);
 }
 else if (comando === 'removerdono' || comando === 'removeowner') {
+    // 🔥 VERIFICA SE É DONO
+    if (!(await isDono(sender))) {
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🔒 *ACESSO NEGADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 👑 Apenas *donos* podem usar
+┃ este comando!
+
+┃ 📌 Você não está na lista
+┃ de donos do bot.
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        await reagir(sock, chat, msgId, emojiErro);
+        return;
+    }
+
     const alvo = await obterMencionado(msg, texto);
     if (!alvo) {
         await enviarResposta(chat, sock, `⚠️ Marque alguém: ${CONFIG.prefix}removerdono @user`, msg);
         return;
     }
     const alvoId = String(alvo).split('@')[0].split(':')[0];
+
+    // 🔥 Verifica se é dono ANTES de remover
+    const donosConfig = Array.isArray(CONFIG.donos) ? CONFIG.donos : [];
+    const donosDb = Array.isArray(db.donos) ? db.donos : [];
+    const todos = [...donosConfig, ...donosDb];
+    const ehDono = todos.some(d => String(d).split('@')[0].split(':')[0] === alvoId);
+
+    if (!ehDono) {
+        await enviarResposta(chat, sock, `⚠️ @${alvoId} não é dono!`, msg, [alvo]);
+        return;
+    }
 
     // 🔥 Remove do CONFIG
     if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
@@ -1724,7 +1970,21 @@ else if (comando === 'removerdono' || comando === 'removeowner') {
     // 🔥 Remove do DB também
     await removerDono(alvo);
 
-    await enviarResposta(chat, sock, `👋 @${alvoId} removido dos donos!`, msg, [alvo]);
+    await enviarResposta(chat, sock,
+        `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 👋 *DONO REMOVIDO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 👤 @${alvoId}
+┃ 📌 Removido do config.js
+┃ ❌ Não é mais dono do bot.
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+        msg,
+        [alvo]
+    );
+    await reagir(sock, chat, msgId, emojiSucesso);
 }
 else if (comando === 'listadonos' || comando === 'donos') {
     await listarDonos(chat, sock, msg);

@@ -1,20 +1,20 @@
 // ==================== BANIR NA ENTRADA ====================
 // services/blacklistJoin.js
 // ============================================================
-// Quando alguém entra no grupo, se estiver na blacklist, é banido
+// Quando alguém entra no grupo:
+//   - Se estiver na blacklist E NÃO foi um ADM que adicionou → bane
+//   - Se foi um ADM que adicionou → deixa passar (respeita)
 // ============================================================
 
 // ==================== VERIFICAR E BANIR ====================
-async function verificarBlacklistNaEntrada(sock, chat, participant) {
+async function verificarBlacklistNaEntrada(sock, chat, participant, author = null) {
     try {
-        // 🔥 PEGA O DB GLOBAL
         const db = global.db || {};
         if (!db.blacklist || !db.blacklist[chat]) return;
 
         const participantId = typeof participant === 'string' ? participant : participant.id;
         if (!participantId) return;
 
-        // 🔥 LIMPA O ID
         const userId = String(participantId).split('@')[0].split(':')[0];
 
         // 🔥 VERIFICA SE TÁ NA BLACKLIST
@@ -32,16 +32,48 @@ async function verificarBlacklistNaEntrada(sock, chat, participant) {
 
         if (!estaNaLista) return;
 
-        // 🔥 BANE IMEDIATAMENTE
+        // ============================================================
+        // 🔥 VERIFICA SE FOI UM ADM QUE ADICIONOU
+        // ============================================================
+        if (author) {
+            try {
+                const metadata = await sock.groupMetadata(chat);
+
+                for (const p of metadata.participants) {
+                    const pId = String(p.id || '').split('@')[0].split(':')[0];
+                    const pLid = String(p.lid || '').split('@')[0].split(':')[0];
+                    const pJid = String(p.jid || p.phoneNumber || '').split('@')[0].split(':')[0];
+
+                    const authorLimpo = String(author).split('@')[0].split(':')[0];
+
+                    if (pId === authorLimpo || pLid === authorLimpo || pJid === authorLimpo) {
+                        // 🔥 É ADM OU CRIADOR?
+                        if (p.admin === 'admin' || p.admin === 'superadmin') {
+                            // 🔥 FOI UM ADM QUE ADICIONOU → DEIXA PASSAR
+                            console.log(`✅ ADM ${authorLimpo} adicionou ${userId}, respeitando`);
+
+                            // 🔥 REMOVE DA BLACKLIST (foi "perdoado" pelo ADM)
+                            delete db.blacklist[chat][userId];
+                            if (global.salvarDB) global.salvarDB();
+
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // ============================================================
+        // 🔥 SE NÃO FOI ADM → BANE
+        // ============================================================
         try {
             await sock.groupParticipantsUpdate(chat, [participantId], 'remove');
 
-            // 🔥 AVISA NO GRUPO
             const motivo = dadosBlacklist?.motivo || 'Sem motivo';
 
             await sock.sendMessage(chat, {
                 text: `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 🚫 **BANIDO AUTOMATICAMENTE**
+┃ 🚫 *BANIDO AUTOMATICAMENTE*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 
 ┃ 👤 @${userId}
@@ -54,15 +86,15 @@ async function verificarBlacklistNaEntrada(sock, chat, participant) {
 
             // 🔥 REMOVE DA LISTA (já foi banido)
             delete db.blacklist[chat][userId];
-
-            // 🔥 SALVA O DB
             if (global.salvarDB) global.salvarDB();
 
         } catch (e) {
-            // Se falhar ao banir, só ignora
+            console.error('❌ Erro ao banir na entrada:', e.message);
         }
 
-    } catch (e) {}
+    } catch (e) {
+        console.error('❌ Erro no blacklistJoin:', e.message);
+    }
 }
 
 // ==================== EXPORTAR ====================

@@ -53,8 +53,8 @@ module.exports = {
     //  2. Adquira uma chave (formato: ju-xxxxxxxx-xxxx)
     // ============================================================
     jufufuAPI: {
-        baseUrl: 'https://ratovkgwkvqqcxnmeeky.supabase.co/functions/v1/ju-api',  // ⚠️ NÃO ALTERE
-        apiKey: '',// ← Cole sua chave aqui
+        baseUrl: 'https://bbwoinjkjyuenrisouno.supabase.co/functions/v1/ju-api',  // ⚠️ NÃO ALTERE
+        apiKey: '', // ← Cole sua chave aqui
         timeout: 60000                                                             // ⚠️ NÃO ALTERE
     },
 
