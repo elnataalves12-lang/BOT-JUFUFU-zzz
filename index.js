@@ -39,6 +39,8 @@ const { cmdDeepSeek } = require('./services/deepseek.js');
 const { cmdGpt } = require('./services/gpt.js');
 const { cmdGemini } = require('./services/gemini.js');
 const { cmdLinkGrupo } = require('./services/linkGroup.js');
+const { cmdCv } = require('./services/cvImagem.js');
+const { pegarJidCanal, montarContextoEncaminhamento } = require('./services/canal.js');
 
 // ==================== INÍCIO DO BOT ====================
 global.inicioBot = Date.now();
@@ -102,7 +104,10 @@ const {
 // ==================== IMPORTAÇÕES ====================
 const { 
     cmdSetGroupPhoto,
+    cmdSetGroupName,
     cmdSetGroupDesc,
+    cmdSetGroupLink,
+    cmdGetGroupLink,
     cmdGroupInfo,
     cmdGroupDesc,
     cmdGroupAdmins,
@@ -197,14 +202,6 @@ const {
     cmdPinterest,
     responderBotaoPinterest 
 } = require('./services/pinterest.js');
-
-// ================ protecao de adm ================
-const {
-    processarMudancaAdm,
-    processarBan,
-    cmdProtecaoAdm,
-    cmdAdmAllowed
-} = require('./services/protecaoAdm.js'); 
 
 // ==================== IMPORTAÇÕES ====================
 const {
@@ -339,11 +336,56 @@ initBanSticker(db, salvarDB, verificarAdmin, isDono);
 
 // ==================== IMPORTAÇÕES ====================
 const {
+    initModule: initGroupStatus,
+    cmdStatusGrupo,
+    cmdAntiStatus,
+    cmdListarStatus,
+    cmdApagarStatus,
+    processarAntiStatus
+} = require('./services/groupStatus.js');
+
+initGroupStatus(db, salvarDB, verificarAdmin, isDono, CONFIG);
+
+// ==================== IMPORTAÇÕES ====================
+const {
+    initModule: initBotOff,
+    cmdBotOff,
+    deveBloquear,
+    isBotOff
+} = require('./services/botOff.js');
+
+initBotOff(db, salvarDB, verificarAdmin, isDono, CONFIG);
+
+// ==================== IMPORTAÇÕES ====================
+const {
+    initModule: initProtecaoAdm,
+    setSock: setSockProtecaoAdm,
+    processarMudancaAdm,
+    processarBan,
+    cmdProtecaoAdm,
+    cmdAdmAllowed
+} = require('./services/protecaoAdm.js');
+
+initProtecaoAdm(db, CONFIG);
+
+// ==================== IMPORTAÇÕES ====================
+const {
+    initModule: initVisuUnica,
+    cmdVisuUnica,
+    processarVisuUnica,
+    isVisuUnicaAtivo
+} = require('./services/antiMidiaNormal.js');
+
+initVisuUnica(db, salvarDB, verificarAdmin, isDono, CONFIG);
+
+// ==================== IMPORTAÇÕES ====================
+const {
     initModule: initStatus,
     cmdStatus
 } = require('./services/statusGrupo.js');
 
 initStatus(db, CONFIG, verificarAdmin, isDono);
+
 // ==================== MENSAGUENS ====================
 const {
     initModule: initMensagens,
@@ -380,6 +422,15 @@ const {
 
 // 🔥 INICIALIZAR O MÓDULO AFK
 initAfk(db, CONFIG, enviarResposta, salvarDB);
+
+// ==================== IMPORTAÇÕES ====================
+const {
+    initModule: initListarGrupos,
+    cmdListarGrupos,
+    registrarGrupo
+} = require('./services/listarGrupos.js');
+
+initListarGrupos(db, salvarDB, isDono, CONFIG);
 
 // ==================== IMPORTAÇÃO DO SISTEMA DE ÁUDIO ====================
 const {
@@ -868,9 +919,19 @@ async function criarFigurinha(chat, sock, sender, msg) {
             return filePath;
         };
 
+        // 🔥 PEGA O JID DO CANAL (com cache)
+        const canalJid = await pegarJidCanal(sock, CONFIG);
+
+        // 🔥 MONTA O CONTEXTO DE ENCAMINHAMENTO
+        const contextInfo = montarContextoEncaminhamento(canalJid, CONFIG.botNome);
+
+        // 🔥 ENVIA COM O CONTEXTO
         const sendStickerFromFile = async (stickerPath) => {
             const buffer = fs.readFileSync(stickerPath);
-            await sock.sendMessage(chat, { sticker: buffer }, { quoted: msg });
+            await sock.sendMessage(chat, {
+                sticker: buffer,
+                contextInfo: contextInfo  // 🔥 AQUI
+            }, { quoted: msg });
         };
 
         // 🔥 PEGA O NICK DA PESSOA
@@ -882,7 +943,7 @@ async function criarFigurinha(chat, sock, sender, msg) {
             downloadImage,
             downloadVideo,
             webMessage: {
-                message: midiaFonte,       // ← AQUI (mídia respondida OU atual)
+                message: midiaFonte,
                 key: msg.key,
                 pushName: msg.pushName
             },
@@ -902,6 +963,7 @@ async function criarFigurinha(chat, sock, sender, msg) {
         await reagir(sock, chat, msg.key.id, '❌');
     }
 }
+
 // ==================== COMANDOS ADMIN ====================
 async function mutar(sock, chat, alvo, msg) {
   if (!db.mutados[chat]) db.mutados[chat] = [];
@@ -1162,8 +1224,56 @@ sock.ev.on("group-participants.update", async (update) => {
             return;
         }
         
+        
+    // 🔥 REGISTRA O GRUPO (primeira vez)
+    try {
+        const metadata = await sock.groupMetadata(chat);
+        registrarGrupo(chat, metadata.subject);
+    } catch (e) {}
+
         await marcarComoLida(sock, msg);
         await contarMensagem(chat, sender, msg, sock);
+
+
+// ============================================================
+// 🔥 BOT OFF (bloqueia todos os comandos)
+// ============================================================
+const textoBruto = (
+    msg.message.conversation ||
+    msg.message.extendedTextMessage?.text ||
+    msg.message.imageMessage?.caption ||
+    msg.message.videoMessage?.caption ||
+    ''
+).trim();
+
+if (textoBruto.startsWith(CONFIG.prefix)) {
+    const comando = textoBruto.slice(CONFIG.prefix.length).trim().split(/ +/)[0].toLowerCase();
+    const bloqueado = await deveBloquear(chat, comando);
+
+    if (bloqueado) {
+        return;  // 🔥 SILÊNCIO TOTAL — não responde nada
+    }
+}
+
+// ============================================================
+// 🔥 ANTI-STATUS (bane quem criar status de grupo)
+// ============================================================
+try {
+    const processado = await processarAntiStatus(sock, chat, sender, msg, enviarResposta);
+    if (processado) return;
+} catch (e) {
+    console.error('❌ Erro no anti-status:', e.message);
+}
+
+    // ============================================================
+    // 🔥 VISUALIZAÇÃO ÚNICA (bloqueia foto/vídeo normal de membro)
+    // ============================================================
+    try {
+        const processado = await processarVisuUnica(sock, chat, sender, msg);
+        if (processado) return;  // 🔥 Se apagou, para aqui
+    } catch (e) {
+        console.error('❌ Erro no visuunica:', e.message);
+    }
 
 // 🔥 CONTAR MENSAGEM + XP
 try {
@@ -1462,7 +1572,50 @@ else if (comando === 'semprefixo' || comando === 'noprefix' || comando === 'sp')
     );
     await reagir(sock, chat, msgId, '🔓');
 }
+// ===== BOT OFF / BOT ON =====
+else if (comando === 'botoff' || comando === 'boton' || comando === 'desligarbot' || comando === 'ligarbot') {
+    // 🔥 PEGA A AÇÃO
+    const acao = comando === 'botoff' || comando === 'desligarbot' ? 'off' : 'on';
+    await cmdBotOff(chat, sock, sender, msg, [acao], enviarResposta, reagir, CONFIG);
+}
+// ===== LISTAR GRUPOS (DONO) =====
+else if (comando === 'listagrupos') {
+    await cmdListarGrupos(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
+}
+// 📛 Mudar nome do grupo
+else if (comando === 'setnome' || comando === 'setname' || comando === 'nomedogrupo') {
+    await cmdSetGroupName(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG, verificarAdmin, isDono);
+}
 
+// 🔄 Resetar link do grupo
+else if (comando === 'resetlink' || comando === 'setlink' || comando === 'novolink') {
+    await cmdSetGroupLink(chat, sock, sender, msg, enviarResposta, reagir, CONFIG, verificarAdmin, isDono);
+}
+// ===== ANTI-GROUP-STATUS =====
+else if (comando === 'antigroupstatus') {
+    await cmdAntiGroupStatus(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== STATUS DE GRUPO (avançado) =====
+else if (comando === 'statusgrupo') {
+    await cmdStatusGrupo(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'antistatus') {
+    await cmdAntiStatus(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'listarstatus') {
+    await cmdListarStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
+}
+else if (comando === 'apagarstatus') {
+    await cmdApagarStatus(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== STATUS DE GRUPO (com quantidade) =====
+else if (['statusgrupo1', 'statusgrupo2', 'statusgrupo3', 'statusgrupo4', 'statusgrupo5'].includes(comando)) {
+    await cmdStatusGrupo(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
+// ===== VISUALIZAÇÃO ÚNICA =====
+else if (comando === 'visuunica') {
+    await cmdVisuUnica(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG);
+}
 // ===== STATUS DO GRUPO =====
 else if (comando === 'status' || comando === 'statusgp' || comando === 'gstatus') {
     await cmdStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG);
@@ -1525,6 +1678,10 @@ else if (comando === 'aprovar') {
 // ===== LISTAR SOLICITAÇÕES =====
 else if (comando === 'solicitacoes') {
     await cmdListarSolicitacoes(sock, chat, sender, msg, enviarResposta, reagir, verificarAdmin, isDono, CONFIG);
+}
+// ===== COLAGEM DE IMAGEM (CV) =====
+else if (comando === 'cv') {
+    await cmdCv(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG, downloadMediaMessage, P);
 }
 // ===== VER DONO DO BOT (com foto) =====
 else if (comando === 'verdonobot' || comando === 'verdono') {
@@ -2469,6 +2626,7 @@ setOnBotOnline(async (sock) => {
     console.log('🔥 CALLBACK EXECUTOU!');
     
     setSockDono(sock); 
+    setSockProtecaoAdm(sock);  
     
     initRankings(db);
     initBlacklist(db);

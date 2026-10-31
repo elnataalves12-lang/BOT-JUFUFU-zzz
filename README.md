@@ -6,7 +6,7 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,13,14,15,16&height=180&section=header&text=JUFUFU%20BOT&fontSize=70&fontAlignY=40&fontColor=000000&animation=twinkling&desc=Tiger%20Thiren%20%E2%80%A2%20WhatsApp%20Bot&descAlignY=62&descSize=20&descColor=000000"/>
 
-<img src="IMG-20261014-WA0081.jpg" alt="JUFUFU BOT" width="900">
+<img src="IMG-20261031-WA0496.jpg" alt="JUFUFU BOT" width="900">
 
 <br><br>
 
@@ -15,7 +15,7 @@
 <br>
 
 <a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz/stargazers">
-  <img src="https://img.shields.io/github/stars/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000&labelColor=000000"/>
+  <img src="https://img.shields.io/github/stars/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000"/>
 </a>
 <a href="https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz/network/members">
   <img src="https://img.shields.io/github/forks/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000"/>
@@ -75,7 +75,7 @@ Cada pessoa que baixar o projeto roda **sua própria cópia**, conectando **sua 
 > **Criar** • **Converter** • **Pack** • **Sticker → GIF** • **Sticker → Imagem** • **EmojiMix**
 
 ### 🛡️ ❰ 𝕄𝕆𝔻𝔼ℝ𝔸ÇÃ𝕆 ❱
-> **Anti-Link** • **Anti-Mídia** • **Anti-Palavrão** • **Blacklist** • **Proteção ADM**
+> **Anti-Link** • **Anti-Mídia** • **Anti-Palavrão** • **Blacklist** • **Proteção ADM** • **Anti-Bot** • **Visuúnica** • **Bot Off**
 
 ### 🎭 ❰ 𝕀ℕ𝕋𝔼ℝ𝔸ÇÃ𝕆 ❱
 > **Tapa** • **Beijo** • **Abraço** • **Soco** • **Matar** • **Casamento** • **Ship**
@@ -93,7 +93,7 @@ Cada pessoa que baixar o projeto roda **sua própria cópia**, conectando **sua 
 > **Menu Principal** • **Menu ADM** • **Menu Dono** • **Bem-vindos** • **Agendamentos**
 
 ### 💤 ❰ 𝕌𝕋𝕀𝕃𝕀𝔻𝔸𝔻𝔼𝕊 ❱
-> **AFK** • **Perfil** • **BotInfo** • **Revelar view-once** • **PDF** • **Enquete**
+> **AFK** • **Perfil** • **BotInfo** • **Revelar view-once** • **PDF** • **Enquete** • **Listar Grupos**
 
 </div>
 
@@ -203,15 +203,14 @@ nano config.js
 
 <div align="center">
 
-| Campo | O que é |
-|:---:|:---|
-| `prefix` | Prefixo dos comandos (ex: °) |
-| `botNome` | Nome do bot |
-| `versao` | Versão exibida no °bot |
-| `canalLink` | Link do seu canal do WhatsApp |
-| `donos` | Lista dos números autorizados como dono |
-| `menuApp.token` | Token do app de menus (se for usar) |
-| `jufufuAPI.apiKey` | Chave da API (YouTube, Anime, TTS, etc) |
+Campo O que é
+prefix Prefixo dos comandos (ex: °)
+botNome Nome do bot
+versao Versão exibida no °bot
+canalLink Link do seu canal do WhatsApp
+donos Lista dos números autorizados como dono
+menuApp.token Token do app de menus (se for usar)
+jufufuAPI.apiKey Chave da API (YouTube, Anime, TTS, etc)
 
 </div>
 
@@ -257,7 +256,6 @@ Vai aparecer um código de pareamento, tipo:
 📱 No celular:
 
 1. Abra o WhatsApp
-
 2. Toque em 3 pontinhos → Dispositivos vinculados
 
 <div align="center">
@@ -271,7 +269,6 @@ Vai aparecer um código de pareamento, tipo:
 </div>
 
 4. Escolha "Vincular com número de telefone"
-
 5. Cole o código
 
 <div align="center">
@@ -318,6 +315,9 @@ BOT-JUFUFU-zzz/
 │   ├── 📋 menus.js
 │   ├── 🎮 rpgSystem.js
 │   ├── 🛡️ blacklist.js
+│   ├── 🛡️ protecaoAdm.js
+│   ├── 🛡️ antiBot.js
+│   ├── 🛡️ antiMidiaNormal.js
 │   ├── 👁️ revelar.js
 │   ├── 💬 mensagens.js
 │   ├── 🎭 emojimix.js
@@ -325,6 +325,8 @@ BOT-JUFUFU-zzz/
 │   ├── 📄 pdf.js
 │   ├── 🏓 ping.js
 │   ├── 🎌 morie.js          → anime + notícias
+│   ├── 📊 listarGrupos.js   → lista de grupos (dono)
+│   ├── 🔴 botOff.js         → desativar/reativar bot
 │   └── ... (diversos outros)
 └── 🔐 session/              → sessão do WhatsApp (criada ao parear)
 ```
@@ -371,11 +373,12 @@ A sessão fica salva na pasta session/, então não precisa parear de novo — d
   <img src="https://img.icons8.com/color/96/000000/github--v1.png" alt="GitHub" width="80"/>
 </a>
 
-<br><br>
 
-| 🟢 **Node.js** | 🟡 **JavaScript** | 🟠 **Git** | 🟢 **WhatsApp** | 🔵 **FFmpeg** | ⚫ **GitHub** |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| Runtime | Linguagem | Versionamento | Conexão | Mídia | Código |
+
+
+
+🟢 Node.js 🟡 JavaScript 🟠 Git 🟢 WhatsApp 🔵 FFmpeg ⚫ GitHub
+Runtime Linguagem Versionamento Conexão Mídia Código
 
 </div>
 
@@ -389,11 +392,10 @@ A sessão fica salva na pasta session/, então não precisa parear de novo — d
 
 ⚠️ ❰ ℕ𝕌ℕℂ𝔸 ℙ𝕌𝔹𝕃𝕀ℚ𝕌𝔼 𝕆𝕌 ℂ𝕆𝕄ℙ𝔸ℝ𝕋𝕀𝕃ℍ𝔼 ❱
 
-| ❌ | ❌ | ❌ |
-|:---:|:---:|:---:|
-| **Tokens de API** | **Chaves (apiKey)** | **Senhas** |
-| **Sessões do WhatsApp** | **Códigos de conexão** | **Credenciais pessoais** |
-| **Pasta session/** | **Arquivo database.json** | **Arquivo config.js** |
+❌ ❌ ❌
+Tokens de API Chaves (apiKey) Senhas
+Sessões do WhatsApp Códigos de conexão Credenciais pessoais
+Pasta session/ Arquivo database.json Arquivo config.js
 
 </div>
 
@@ -423,12 +425,11 @@ Atualizações, avisos e suporte acontecem no canal oficial do Jufufu:
 
 <div align="center">
 
-| 🔗 | Link |
-|:---:|:---|
-| 📦 | **Repositório oficial** [BOT-JUFUFU-zzz](https://github.com/elnataalves12-lang/BOT-JUFUFU-zzz) |
-| 📢 | **Canal oficial** [WhatsApp](https://whatsapp.com/channel/0029VbDHw0fAO7RBFTJ3rn1e) |
-| 🎛️ | **App de menus** [Quick Menu Bot](https://github.com/elnataalves12-lang) |
-| 🌐 | **Portal das APIs** [JU API Web](https://github.com/elnataalves12-lang) |
+🔗 Link
+📦 Repositório oficial BOT-JUFUFU-zzz
+📢 Canal oficial WhatsApp
+🎛️ App de menus Quick Menu Bot
+🌐 Portal das APIs JU API Web
 
 </div>
 
@@ -448,7 +449,9 @@ Atualizações, avisos e suporte acontecem no canal oficial do Jufufu:
   <img src="https://img.shields.io/github/stars/elnataalves12-lang/BOT-JUFUFU-zzz?style=for-the-badge&logo=github&color=FFC107&labelColor=000000&label=DAR%20UMA%20ESTRELA"/>
 </a>
 
-<br><br>
+
+
+
 
 🐯 𝕁𝕌𝔽𝕌𝔽𝕌 𝔹𝕆𝕋
 

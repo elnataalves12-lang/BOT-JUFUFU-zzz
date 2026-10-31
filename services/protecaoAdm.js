@@ -1,50 +1,124 @@
 // ==================== PROTEÇÃO DE ADM ====================
 // services/protecaoAdm.js
 //
-// Protege ADMs de outros ADMs mal-intencionados.
-//
 // Regras (quando ativado):
 //   1. ADM rebaixa outro ADM → rebaixado volta + quem rebaixou perde ADM
 //   2. ADM bane outro ADM    → quem baniu é banido
 //   3. ADM promove membro    → os 2 perdem ADM
-//   4. ADM bane membro       → tudo bem, não faz nada
 //
 // Exceções (podem fazer tudo sem punição):
 //   - Dono do bot
 //   - Criador do grupo (superadmin)
 //   - ADMs na lista permitida
+//
+// ⚠️ O BOT NUNCA SE PUNE SOZINHO
 // ============================================================
 
+// ==================== VARIÁVEIS ====================
+let dbGlobal = null;
+let sockGlobal = null;
+let CONFIG_GLOBAL = null;
+
 // ==================== AVISOS DE SPAM ====================
-// 🔥 Guarda avisos já enviados pra não spammar
 const avisosEnviados = new Set();
 
-// ==================== LIMPAR ID ====================
-function limparId(jid) {
-    if (!jid) return '';
-    return String(jid).split('@')[0].split(':')[0];
+// ==================== INICIALIZAR ====================
+function initModule(dbInstance, configInstance, sockInstance) {
+    dbGlobal = dbInstance;
+    CONFIG_GLOBAL = configInstance;
+    if (sockInstance) sockGlobal = sockInstance;
+    console.log('✅ Módulo ProtecaoAdm inicializado!');
 }
 
-// ==================== COMPARAR IDs ====================
+// ==================== SETAR SOCK ====================
+function setSock(sockInstance) {
+    sockGlobal = sockInstance;
+}
+
+// ==================== LIMPAR ID (só números) ====================
+function limparId(jid) {
+    if (!jid) return '';
+    return String(jid).replace(/\D/g, '');
+}
+
+// ==================== COMPARAR 2 IDs ====================
 function mesmoId(a, b) {
     if (!a || !b) return false;
-    return limparId(a) === limparId(b);
+
+    const aNum = limparId(a);
+    const bNum = limparId(b);
+
+    if (!aNum || !bNum) return false;
+
+    // 🔥 Compara direto
+    if (aNum === bNum) return true;
+
+    // 🔥 Compara últimos 8 dígitos (evita +55, 0, etc)
+    if (aNum.length >= 8 && bNum.length >= 8) {
+        if (aNum.slice(-8) === bNum.slice(-8)) return true;
+    }
+
+    return false;
+}
+
+// ==================== VERIFICAR SE É O BOT ====================
+function ehBot(jid) {
+    if (!sockGlobal?.user) return false;
+    if (!jid) return false;
+
+    const botIds = [
+        sockGlobal.user.id,
+        sockGlobal.user.lid,
+        sockGlobal.user.jid
+    ].filter(Boolean);
+
+    return botIds.some(botId => mesmoId(botId, jid));
 }
 
 // ==================== VERIFICAR SE É DONO DO BOT ====================
 async function isDonoBot(jid, CONFIG, db) {
-    const id = limparId(jid);
+    try {
+        const cfg = CONFIG || CONFIG_GLOBAL;
+        const database = db || dbGlobal;
 
-    if (!Array.isArray(CONFIG.donos)) CONFIG.donos = [];
-    if (!Array.isArray(db?.donos)) db.donos = [];
+        if (!cfg || !database) return false;
 
-    const todos = [...CONFIG.donos, ...db.donos];
+        if (!Array.isArray(cfg.donos)) cfg.donos = [];
+        if (!Array.isArray(database.donos)) database.donos = [];
 
-    for (const dono of todos) {
-        if (mesmoId(dono, id)) return true;
+        const todos = [...cfg.donos, ...database.donos];
+
+        // 🔥 Se o jid for LID, tenta resolver via groupMetadata
+        let jidResolvido = jid;
+
+        if (String(jid).includes('@lid') && sockGlobal) {
+            try {
+                const groups = await sockGlobal.groupFetchAllParticipating();
+                for (const group of Object.values(groups)) {
+                    if (!group?.participants) continue;
+                    for (const p of group.participants) {
+                        const pLid = String(p.lid || '');
+                        const pJid = String(p.jid || p.phoneNumber || '');
+
+                        if (mesmoId(pLid, jid) && pJid) {
+                            jidResolvido = pJid;
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
+        for (const dono of todos) {
+            if (!dono) continue;
+            if (mesmoId(dono, jidResolvido)) return true;
+            if (mesmoId(dono, jid)) return true;
+        }
+
+        return false;
+    } catch (e) {
+        return false;
     }
-
-    return false;
 }
 
 // ==================== VERIFICAR SE É CRIADOR DO GRUPO ====================
@@ -52,18 +126,24 @@ async function isCriadorGrupo(sock, chat, jid) {
     try {
         const metadata = await sock.groupMetadata(chat);
 
-        // 🔥 O criador é o "superadmin" (owner)
-        // O Baileys não tem um campo "owner" direto em alguns casos
-        // Mas o `superadmin` geralmente é o criador
-
         const idLimpo = limparId(jid);
 
         for (const p of metadata.participants) {
-            const pId = limparId(p.id);
-            const pLid = limparId(p.lid);
-            const pJid = limparId(p.jid || p.phoneNumber);
+            const pId = String(p.id || '');
+            const pLid = String(p.lid || '');
+            const pJid = String(p.jid || p.phoneNumber || '');
 
-            const ehEle = pId === idLimpo || pLid === idLimpo || pJid === idLimpo;
+            const pIdNum = limparId(pId);
+            const pLidNum = limparId(pLid);
+            const pJidNum = limparId(pJid);
+
+            const ehEle =
+                pIdNum === idLimpo ||
+                pLidNum === idLimpo ||
+                pJidNum === idLimpo ||
+                mesmoId(pId, jid) ||
+                mesmoId(pLid, jid) ||
+                mesmoId(pJid, jid);
 
             if (ehEle && p.admin === 'superadmin') {
                 return true;
@@ -78,14 +158,14 @@ async function isCriadorGrupo(sock, chat, jid) {
 
 // ==================== VERIFICAR SE TÁ NA LISTA PERMITIDA ====================
 function isAdmPermitido(jid, chat, db) {
-    if (!db.admPermitidos) return false;
-    if (!db.admPermitidos[chat]) return false;
+    const database = db || dbGlobal;
+    if (!database?.admPermitidos) return false;
+    if (!database.admPermitidos[chat]) return false;
 
-    const lista = db.admPermitidos[chat];
-    const idLimpo = limparId(jid);
+    const lista = database.admPermitidos[chat];
 
     for (const adm of lista) {
-        if (mesmoId(adm, idLimpo)) return true;
+        if (mesmoId(adm, jid)) return true;
     }
 
     return false;
@@ -93,13 +173,14 @@ function isAdmPermitido(jid, chat, db) {
 
 // ==================== ADICIONAR À LISTA PERMITIDA ====================
 function adicionarAdmPermitido(jid, chat, db) {
-    if (!db.admPermitidos) db.admPermitidos = {};
-    if (!db.admPermitidos[chat]) db.admPermitidos[chat] = [];
+    const database = db || dbGlobal;
+    if (!database.admPermitidos) database.admPermitidos = {};
+    if (!database.admPermitidos[chat]) database.admPermitidos[chat] = [];
 
     const idLimpo = limparId(jid);
 
-    if (!db.admPermitidos[chat].some(d => mesmoId(d, idLimpo))) {
-        db.admPermitidos[chat].push(idLimpo);
+    if (!database.admPermitidos[chat].some(d => mesmoId(d, idLimpo))) {
+        database.admPermitidos[chat].push(idLimpo);
         return true;
     }
 
@@ -108,29 +189,40 @@ function adicionarAdmPermitido(jid, chat, db) {
 
 // ==================== REMOVER DA LISTA PERMITIDA ====================
 function removerAdmPermitido(jid, chat, db) {
-    if (!db.admPermitidos) return false;
-    if (!db.admPermitidos[chat]) return false;
+    const database = db || dbGlobal;
+    if (!database?.admPermitidos) return false;
+    if (!database.admPermitidos[chat]) return false;
 
-    const idLimpo = limparId(jid);
-    const antes = db.admPermitidos[chat].length;
+    const antes = database.admPermitidos[chat].length;
 
-    db.admPermitidos[chat] = db.admPermitidos[chat].filter(d => !mesmoId(d, idLimpo));
+    database.admPermitidos[chat] = database.admPermitidos[chat].filter(d => !mesmoId(d, jid));
 
-    return db.admPermitidos[chat].length !== antes;
+    return database.admPermitidos[chat].length !== antes;
 }
 
 // ==================== VERIFICAR SE O BOT É ADMIN ====================
 async function botEhAdmin(sock, chat) {
     try {
         const metadata = await sock.groupMetadata(chat);
-        const botId = limparId(sock.user.id);
+
+        const botIds = [
+            sock.user.id,
+            sock.user.lid,
+            sock.user.jid
+        ].filter(Boolean);
 
         for (const p of metadata.participants) {
-            const pId = limparId(p.id);
-            const pLid = limparId(p.lid);
-            const pJid = limparId(p.jid || p.phoneNumber);
+            const pId = String(p.id || '');
+            const pLid = String(p.lid || '');
+            const pJid = String(p.jid || p.phoneNumber || '');
 
-            if (pId === botId || pLid === botId || pJid === botId) {
+            const ehBot = botIds.some(botId =>
+                mesmoId(botId, pId) ||
+                mesmoId(botId, pLid) ||
+                mesmoId(botId, pJid)
+            );
+
+            if (ehBot) {
                 return p.admin === 'admin' || p.admin === 'superadmin';
             }
         }
@@ -143,7 +235,6 @@ async function botEhAdmin(sock, chat) {
 
 // ==================== AVISAR QUE O BOT NÃO É ADM ====================
 async function avisarBotNaoEhAdm(sock, chat, db, salvarDB) {
-    // 🔥 SÓ AVISA UMA VEZ POR GRUPO
     const chave = `bot_nao_adm_${chat}`;
     if (avisosEnviados.has(chave)) return;
     avisosEnviados.add(chave);
@@ -156,99 +247,15 @@ async function avisarBotNaoEhAdm(sock, chat, db, salvarDB) {
 }
 
 // ==================== PROCESSAR MUDANÇA DE ADM ====================
-// 🔥 Chamado quando alguém é promovido ou rebaixado
 async function processarMudancaAdm(sock, chat, quemFez, quemSofreu, acao, db, salvarDB, CONFIG) {
     try {
-        // 🔥 VERIFICA SE A PROTEÇÃO TÁ ATIVA NESSE GRUPO
-        if (!db.protecaoAdm?.[chat]) return false;
-
-        // 🔥 VERIFICA SE O BOT É ADMIN
-        const botAdmin = await botEhAdmin(sock, chat);
-        if (!botAdmin) {
-            await avisarBotNaoEhAdm(sock, chat, db, salvarDB);
-            return false;
-        }
-
-        // 🔥 VERIFICA AS EXCEÇÕES (quem fez a ação)
-        if (await isDonoBot(quemFez, CONFIG, db)) return false;
-        if (await isCriadorGrupo(sock, chat, quemFez)) return false;
-        if (isAdmPermitido(quemFez, chat, db)) return false;
-
-        // 🔥 VERIFICA SE ELE TÁ AGINDO CONTRA OUTRO ADM
-        const metadata = await sock.groupMetadata(chat);
-
-        let quemFezEhAdmin = false;
-        let quemSofreuEhAdmin = false;
-
-        for (const p of metadata.participants) {
-            const pId = limparId(p.id);
-            const pLid = limparId(p.lid);
-            const pJid = limparId(p.jid || p.phoneNumber);
-
-            const ehQuemFez = pId === limparId(quemFez) || pLid === limparId(quemFez) || pJid === limparId(quemFez);
-            const ehQuemSofreu = pId === limparId(quemSofreu) || pLid === limparId(quemSofreu) || pJid === limparId(quemSofreu);
-
-            if (ehQuemFez) quemFezEhAdmin = p.admin === 'admin' || p.admin === 'superadmin';
-            if (ehQuemSofreu) quemSofreuEhAdmin = p.admin === 'admin' || p.admin === 'superadmin';
-        }
-
-        // ============================================================
-        // 🔥 CASO 1: PROMOÇÃO (alguém promoveu um membro comum)
-        // ============================================================
-        if (acao === 'promote') {
-            // 🔥 SÓ PUNE SE PROMOVEU UM MEMBRO COMUM (não-ADM)
-            if (!quemFezEhAdmin) return false;
-
-            // 🔥 QUEM FOI PROMOVIDO NÃO ERA ADM
-            if (!quemSofreuEhAdmin || acao === 'promote') {
-                // 🔥 PUNIÇÃO: remove ADM dos dois
-                try {
-                    // Rebaixa quem promoveu
-                    await sock.groupParticipantsUpdate(chat, [quemFez], 'demote');
-                } catch (e) {}
-
-                try {
-                    // Rebaixa quem foi promovido
-                    await sock.groupParticipantsUpdate(chat, [quemSofreu], 'demote');
-                } catch (e) {}
-
-                return true;
-            }
-        }
-
-        // ============================================================
-        // 🔥 CASO 2: REBAIXAMENTO (ADM rebaixou outro ADM)
-        // ============================================================
-        if (acao === 'demote') {
-            // 🔥 SÓ PUNE SE QUEM FEZ É ADM E QUEM SOFREU ERA ADM
-            if (!quemFezEhAdmin) return false;
-
-            // 🔥 REPROMOVE QUEM FOI REBAIXADO
-            try {
-                await sock.groupParticipantsUpdate(chat, [quemSofreu], 'promote');
-            } catch (e) {}
-
-            // 🔥 REBAIXA QUEM REBAIXOU
-            try {
-                await sock.groupParticipantsUpdate(chat, [quemFez], 'demote');
-            } catch (e) {}
-
-            return true;
-        }
-
-        return false;
-
-    } catch (error) {
-        return false;
-    }
-}
-
-// ==================== PROCESSAR BAN ====================
-// 🔥 Chamado quando alguém foi removido do grupo
-async function processarBan(sock, chat, quemFez, quemSofreu, db, salvarDB, CONFIG) {
-    try {
         // 🔥 VERIFICA SE A PROTEÇÃO TÁ ATIVA
-        if (!db.protecaoAdm?.[chat]) return false;
+        if (!db?.protecaoAdm?.[chat]) return false;
+
+        // ============================================================
+        // 🔥 SE QUEM FEZ A AÇÃO FOI O PRÓPRIO BOT → IGNORA
+        // ============================================================
+        if (ehBot(quemFez)) return false;
 
         // 🔥 VERIFICA SE O BOT É ADMIN
         const botAdmin = await botEhAdmin(sock, chat);
@@ -256,95 +263,167 @@ async function processarBan(sock, chat, quemFez, quemSofreu, db, salvarDB, CONFI
             await avisarBotNaoEhAdm(sock, chat, db, salvarDB);
             return false;
         }
-
-        // 🔥 VERIFICA SE O BOT FEZ A AÇÃO (não pune a si mesmo)
-        if (mesmoId(quemFez, sock.user.id)) return false;
 
         // 🔥 VERIFICA AS EXCEÇÕES
         if (await isDonoBot(quemFez, CONFIG, db)) return false;
         if (await isCriadorGrupo(sock, chat, quemFez)) return false;
         if (isAdmPermitido(quemFez, chat, db)) return false;
 
-        // 🔥 VERIFICA SE QUEM SOFREU ERA ADM
-        // ⚠️ Como a pessoa já saiu, precisamos checar pelo cache ou assumir
-        // Vou verificar pelo metadata (pode estar lá ainda)
+        // 🔥 VERIFICA SE QUEM SOFREU É O BOT → IGNORA
+        if (ehBot(quemSofreu)) return false;
 
+        // 🔥 VERIFICA SE É ADM
+        const metadata = await sock.groupMetadata(chat);
+
+        let quemFezEhAdmin = false;
+        let quemSofreuEhAdmin = false;
+
+        for (const p of metadata.participants) {
+            const pId = String(p.id || '');
+            const pLid = String(p.lid || '');
+            const pJid = String(p.jid || p.phoneNumber || '');
+
+            const ehQuemFez =
+                mesmoId(pId, quemFez) ||
+                mesmoId(pLid, quemFez) ||
+                mesmoId(pJid, quemFez);
+
+            const ehQuemSofreu =
+                mesmoId(pId, quemSofreu) ||
+                mesmoId(pLid, quemSofreu) ||
+                mesmoId(pJid, quemSofreu);
+
+            if (ehQuemFez) quemFezEhAdmin = p.admin === 'admin' || p.admin === 'superadmin';
+            if (ehQuemSofreu) quemSofreuEhAdmin = p.admin === 'admin' || p.admin === 'superadmin';
+        }
+
+        // ============================================================
+        // 🔥 CASO 1: PROMOÇÃO
+        // ============================================================
+        if (acao === 'promote') {
+            if (!quemFezEhAdmin) return false;
+
+            // 🔥 Se quem sofreu JÁ era admin, não é promoção real
+            if (quemSofreuEhAdmin) return false;
+
+            // 🔥 PUNIÇÃO: remove ADM dos dois
+            try { await sock.groupParticipantsUpdate(chat, [quemFez], 'demote'); } catch (e) {}
+            try { await sock.groupParticipantsUpdate(chat, [quemSofreu], 'demote'); } catch (e) {}
+
+            return true;
+        }
+
+        // ============================================================
+        // 🔥 CASO 2: REBAIXAMENTO
+        // ============================================================
+        if (acao === 'demote') {
+            if (!quemFezEhAdmin) return false;
+            if (!quemSofreuEhAdmin) return false;
+
+            // 🔥 Repromove quem foi rebaixado
+            try { await sock.groupParticipantsUpdate(chat, [quemSofreu], 'promote'); } catch (e) {}
+
+            // 🔥 Rebaixa quem rebaixou
+            try { await sock.groupParticipantsUpdate(chat, [quemFez], 'demote'); } catch (e) {}
+
+            return true;
+        }
+
+        return false;
+
+    } catch (error) {
+        console.error('❌ Erro em processarMudancaAdm:', error.message);
+        return false;
+    }
+}
+
+// ==================== PROCESSAR BAN ====================
+async function processarBan(sock, chat, quemFez, quemSofreu, db, salvarDB, CONFIG) {
+    try {
+        if (!db?.protecaoAdm?.[chat]) return false;
+
+        // 🔥 SE QUEM FEZ FOI O BOT → IGNORA
+        if (ehBot(quemFez)) return false;
+
+        // 🔥 SE QUEM SOFREU FOI O BOT → IGNORA
+        if (ehBot(quemSofreu)) return false;
+
+        // 🔥 VERIFICA SE O BOT É ADMIN
+        const botAdmin = await botEhAdmin(sock, chat);
+        if (!botAdmin) {
+            await avisarBotNaoEhAdm(sock, chat, db, salvarDB);
+            return false;
+        }
+
+        // 🔥 VERIFICA AS EXCEÇÕES
+        if (await isDonoBot(quemFez, CONFIG, db)) return false;
+        if (await isCriadorGrupo(sock, chat, quemFez)) return false;
+        if (isAdmPermitido(quemFez, chat, db)) return false;
+
+        // 🔥 VERIFICA SE QUEM FEZ É ADM
+        let quemFezEhAdmin = false;
         let quemSofreuEraAdmin = false;
 
         try {
             const metadata = await sock.groupMetadata(chat);
 
             for (const p of metadata.participants) {
-                const pId = limparId(p.id);
-                const pLid = limparId(p.lid);
-                const pJid = limparId(p.jid || p.phoneNumber);
+                const pId = String(p.id || '');
+                const pLid = String(p.lid || '');
+                const pJid = String(p.jid || p.phoneNumber || '');
 
-                const ehEle = pId === limparId(quemSofreu) || pLid === limparId(quemSofreu) || pJid === limparId(quemSofreu);
+                const ehQuemFez =
+                    mesmoId(pId, quemFez) ||
+                    mesmoId(pLid, quemFez) ||
+                    mesmoId(pJid, quemFez);
 
-                if (ehEle) {
-                    quemSofreuEraAdmin = p.admin === 'admin' || p.admin === 'superadmin';
-                    break;
-                }
+                const ehQuemSofreu =
+                    mesmoId(pId, quemSofreu) ||
+                    mesmoId(pLid, quemSofreu) ||
+                    mesmoId(pJid, quemSofreu);
+
+                if (ehQuemFez) quemFezEhAdmin = p.admin === 'admin' || p.admin === 'superadmin';
+                if (ehQuemSofreu) quemSofreuEraAdmin = p.admin === 'admin' || p.admin === 'superadmin';
             }
         } catch (e) {}
 
-        // 🔥 SE NÃO SABEMOS SE ERA ADM, PUNE POR SEGURANÇA
-        // (só se quem fez é ADM)
-        let quemFezEhAdmin = false;
-
-        try {
-            const metadata = await sock.groupMetadata(chat);
-
-            for (const p of metadata.participants) {
-                const pId = limparId(p.id);
-                const pLid = limparId(p.lid);
-                const pJid = limparId(p.jid || p.phoneNumber);
-
-                const ehEle = pId === limparId(quemFez) || pLid === limparId(quemFez) || pJid === limparId(quemFez);
-
-                if (ehEle) {
-                    quemFezEhAdmin = p.admin === 'admin' || p.admin === 'superadmin';
-                    break;
-                }
-            }
-        } catch (e) {}
-
-        // 🔥 SE QUEM FEZ NÃO É ADM, NÃO FAZ NADA
+        // 🔥 Se quem fez não é admin, não faz nada
         if (!quemFezEhAdmin) return false;
 
-        // 🔥 SE QUEM SOFREU ERA ADM, PUNE QUEM BANIU
+        // 🔥 Se quem sofreu era admin, pune quem baniu
         if (quemSofreuEraAdmin) {
-            try {
-                await sock.groupParticipantsUpdate(chat, [quemFez], 'remove');
-            } catch (e) {}
-
+            try { await sock.groupParticipantsUpdate(chat, [quemFez], 'remove'); } catch (e) {}
             return true;
         }
 
-        // 🔥 SE NÃO SABEMOS SE ERA ADM, NÃO PUNE (fica mais seguro)
         return false;
 
     } catch (error) {
+        console.error('❌ Erro em processarBan:', error.message);
         return false;
     }
 }
 
 // ==================== COMANDO PROTEÇÃO ADM ====================
 async function cmdProtecaoAdm(chat, sock, sender, msg, args, enviarResposta, reagir, verificarAdmin, isDono, db, salvarDB, CONFIG) {
-    // 🔥 SÓ ADM
-    const isAdmin = await verificarAdmin(sock, chat, sender);
-    if (!isAdmin) {
-        await enviarResposta(chat, sock, '🚫 Apenas administradores!', msg);
-        return;
-    }
-
-    // 🔥 VERIFICA AS EXCEÇÕES
+    // 🔥 VERIFICA AS EXCEÇÕES (dono OU criador do grupo)
     const donoBot = await isDonoBot(sender, CONFIG, db);
     const criador = await isCriadorGrupo(sock, chat, sender);
 
     if (!donoBot && !criador) {
         await enviarResposta(chat, sock,
-            `🔒 Apenas o *dono do bot* ou o *criador do grupo* podem usar este comando!`,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🔒 *ACESSO NEGADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ Apenas o *dono do bot* ou
+┃ o *criador do grupo* podem
+┃ usar este comando.
+
+┃ ⚠️ Outros ADMs não contam.
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
             msg
         );
         return;
@@ -370,7 +449,6 @@ async function cmdProtecaoAdm(chat, sock, sender, msg, args, enviarResposta, rea
         return;
     }
 
-    // 🔥 STATUS
     const ativa = db.protecaoAdm[chat] === true;
 
     await enviarResposta(chat, sock,
@@ -399,6 +477,8 @@ async function cmdProtecaoAdm(chat, sock, sender, msg, args, enviarResposta, rea
 ┃ Se um ADM promover um membro,
 ┃ o bot remove ADM dos dois.
 
+⚠️ *O bot NUNCA se pune sozinho.*
+
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 『 ${CONFIG.botNome} 』`,
         msg
@@ -412,13 +492,26 @@ async function cmdAdmAllowed(chat, sock, sender, msg, args, enviarResposta, reag
     const criador = await isCriadorGrupo(sock, chat, sender);
 
     if (!donoBot && !criador) {
-        await enviarResposta(chat, sock, '🔒 Apenas o *dono do bot* ou o *criador do grupo*!', msg);
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🔒 *ACESSO NEGADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ Apenas o *dono do bot* ou
+┃ o *criador do grupo* podem
+┃ usar este comando.
+
+┃ ⚠️ Outros ADMs não contam.
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
         return;
     }
 
     const sub = args[0]?.toLowerCase();
 
-    // 🔥 LIST
     if (sub === 'list' || sub === 'lista') {
         const lista = db.admPermitidos?.[chat] || [];
 
@@ -437,7 +530,6 @@ async function cmdAdmAllowed(chat, sock, sender, msg, args, enviarResposta, reag
         return;
     }
 
-    // 🔥 PEGA O ALVO
     const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.participant;
     const alvo = mentioned[0] || quoted;
@@ -453,7 +545,6 @@ async function cmdAdmAllowed(chat, sock, sender, msg, args, enviarResposta, reag
         return;
     }
 
-    // 🔥 REMOVE
     if (sub === 'remove' || sub === 'remover') {
         const ok = removerAdmPermitido(alvo, chat, db);
         salvarDB();
@@ -467,7 +558,6 @@ async function cmdAdmAllowed(chat, sock, sender, msg, args, enviarResposta, reag
         return;
     }
 
-    // 🔥 ADD (padrão)
     const ok = adicionarAdmPermitido(alvo, chat, db);
     salvarDB();
 
@@ -481,6 +571,8 @@ async function cmdAdmAllowed(chat, sock, sender, msg, args, enviarResposta, reag
 
 // ==================== EXPORTAR ====================
 module.exports = {
+    initModule,
+    setSock,
     processarMudancaAdm,
     processarBan,
     cmdProtecaoAdm,
@@ -491,6 +583,7 @@ module.exports = {
     adicionarAdmPermitido,
     removerAdmPermitido,
     botEhAdmin,
+    ehBot,
     limparId,
     mesmoId
 };

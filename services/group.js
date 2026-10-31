@@ -1,94 +1,313 @@
 // ==================== COMANDOS DE GRUPO ====================
 // services/group.js
+//
+// Comandos completos pra gerenciar grupo:
+//   • °setfoto       → muda foto do grupo
+//   • °setnome       → muda nome do grupo
+//   • °setdesc       → muda descrição
+//   • °setlink       → reseta link do grupo
+//   • °setregras     → define regras
+//   • °grupoinfo     → info completa
+//   • °descricao     → só descrição
+//   • °admins        → lista ADMs
+//   • °membros       → total membros
+//   • °groupid       → ID do grupo
+//   • °criado        → data de criação
+//
+// Todos exigem ADM/dono (exceto os de "ver").
+// Sem dependência de sharp.
+// ============================================================
 
-// ===== 1. EDITAR FOTO DO GRUPO =====
+const CONFIG = require('../config.js');
+
+// ==================== 1. MUDAR FOTO DO GRUPO ====================
 async function cmdSetGroupPhoto(chat, sock, sender, msg, enviarResposta, reagir, downloadMediaMessage, P, CONFIG, verificarAdmin, isDono) {
-    // Verifica se é ADM
     const isAdmin = await verificarAdmin(sock, chat, sender);
     const isDonoBot = await isDono(sender);
-    
+
     if (!isAdmin && !isDonoBot) {
-        await enviarResposta(chat, sock, '🚫 Apenas administradores podem mudar a foto do grupo!', msg);
+        await enviarResposta(chat, sock, '🚫 Apenas administradores ou dono!', msg);
         return;
     }
 
-    // Verifica se tem uma mensagem respondida
+    if (!chat.endsWith('@g.us')) {
+        await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
+        return;
+    }
+
+    // 🔥 VERIFICA SE O BOT É ADMIN (versão robusta)
+let botEhAdmin = false;
+try {
+    const metadata = await sock.groupMetadata(chat);
+
+    // 🔥 Limpa todos os IDs do bot (pode vir como @lid, @s.whatsapp.net, etc)
+    const limpar = (str) => String(str || '').split('@')[0].split(':')[0].replace(/\D/g, '');
+
+    const botIds = [
+        sock.user.id,
+        sock.user.lid,
+        sock.user.jid,
+        sock.user.phoneNumber
+    ].filter(Boolean).map(limpar);
+
+    for (const p of metadata.participants) {
+        const pIds = [
+            p.id,
+            p.lid,
+            p.jid,
+            p.phoneNumber
+        ].filter(Boolean).map(limpar);
+
+        // 🔥 Verifica se ALGUM ID do bot bate com ALGUM ID do participante
+        const ehBot = pIds.some(id => botIds.includes(id));
+
+        if (ehBot) {
+            botEhAdmin = p.admin === 'admin' || p.admin === 'superadmin';
+            break;
+        }
+    }
+} catch (e) {
+    console.error('Erro ao verificar admin:', e.message);
+}
+
+    if (!botEhAdmin) {
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ⚠️ *BOT NÃO É ADMIN*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ Para mudar a foto do grupo,
+┃ o bot precisa ser *ADMIN*.
+
+┃ 📌 Promova o bot e tente
+┃ novamente.
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        return;
+    }
+
+    // 🔥 PEGA A FOTO (respondida ou na mensagem)
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-    if (!quoted) {
-        await enviarResposta(chat, sock, '📸 Responda a uma imagem para mudar a foto do grupo!\n📌 Exemplo: responda uma foto com °setfoto', msg);
-        return;
+    const fotoRespondida = quoted?.imageMessage;
+    const fotoAtual = msg.message?.imageMessage;
+
+    // 🔥 DESEMBRULHA viewOnce se tiver
+    let foto = null;
+    let alvoParaDownload = null;
+
+    if (fotoRespondida) {
+        foto = fotoRespondida;
+        alvoParaDownload = { message: quoted, key: msg.key };
+    } else if (quoted?.viewOnceMessage || quoted?.viewOnceMessageV2) {
+        // 🔥 Foto respondida em visualização única
+        const inner = quoted.viewOnceMessage?.message || quoted.viewOnceMessageV2?.message;
+        if (inner?.imageMessage) {
+            foto = inner.imageMessage;
+            alvoParaDownload = { message: quoted, key: msg.key };
+        }
+    } else if (fotoAtual) {
+        foto = fotoAtual;
+        alvoParaDownload = msg;
+    } else if (msg.message?.viewOnceMessage || msg.message?.viewOnceMessageV2) {
+        // 🔥 Foto enviada em visualização única
+        const inner = msg.message.viewOnceMessage?.message || msg.message.viewOnceMessageV2?.message;
+        if (inner?.imageMessage) {
+            foto = inner.imageMessage;
+            alvoParaDownload = msg;
+        }
     }
 
-    // Verifica se é uma imagem
-    const isImage = !!quoted.imageMessage;
-    if (!isImage) {
-        await enviarResposta(chat, sock, '⚠️ Responda a uma imagem (JPG, PNG, WebP)!', msg);
+    if (!foto || !alvoParaDownload) {
+        await enviarResposta(chat, sock,
+            `📸 *COMO USAR:*
+📌 Responda uma foto com: ${CONFIG.prefix}setfoto
+📌 Ou envie a foto com a legenda: ${CONFIG.prefix}setfoto
+
+⚠️ Formatos: JPG, PNG, WebP (até 5MB)
+💡 Funciona com foto normal E visualização única`,
+            msg
+        );
         return;
     }
 
     await reagir(sock, chat, msg.key.id, '⏳');
 
     try {
-        // Baixa a imagem
-        const target = { message: quoted, key: msg.key };
-        const buffer = await downloadMediaMessage(target, 'buffer', {}, { logger: P({ level: 'silent' }) });
+        // 🔥 BAIXA A FOTO
+        const buffer = await downloadMediaMessage(
+            alvoParaDownload, 'buffer', {},
+            { logger: P({ level: 'silent' }) }
+        );
 
         if (!buffer || buffer.length < 100) {
             throw new Error('Imagem inválida ou muito pequena');
         }
 
-        // Atualiza a foto do grupo
+        // 🔥 VERIFICA TAMANHO (5MB max)
+        if (buffer.length > 5 * 1024 * 1024) {
+            throw new Error('Imagem muito grande! Máximo 5MB.');
+        }
+
+        // 🔥 ATUALIZA DIRETO (sem sharp)
         await sock.updateProfilePicture(chat, buffer);
 
-        await enviarResposta(chat, sock, '✅ Foto do grupo atualizada com sucesso! 📸', msg);
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ✅ *FOTO ATUALIZADA*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 📸 Foto do grupo alterada
+┃ com sucesso!
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
         await reagir(sock, chat, msg.key.id, '✅');
 
     } catch (error) {
-        
-        if (error.message.includes('401')) {
-            await enviarResposta(chat, sock, '❌ Erro: Você precisa ser administrador para mudar a foto!', msg);
+        console.error('❌ Erro ao mudar foto:', error.message);
+        console.error('❌ Stack:', error.stack);
+
+        let msgErro = `❌ Erro: ${error.message}`;
+
+        if (error.message.includes('401') || error.message.includes('not-authorized')) {
+            msgErro = '❌ O bot precisa ser *ADMIN* do grupo!';
         } else if (error.message.includes('413')) {
-            await enviarResposta(chat, sock, '❌ Imagem muito grande! Envie uma imagem menor.', msg);
-        } else {
-            await enviarResposta(chat, sock, `❌ Erro ao atualizar foto: ${error.message}`, msg);
+            msgErro = '❌ Imagem muito grande! Envie uma menor.';
+        } else if (error.message.includes('400')) {
+            msgErro = '❌ Formato de imagem não suportado.';
+        } else if (error.message.includes('media') || error.message.includes('download')) {
+            msgErro = '❌ Não consegui baixar a foto. Tente novamente.';
         }
+
+        await enviarResposta(chat, sock, msgErro, msg);
         await reagir(sock, chat, msg.key.id, '❌');
     }
 }
 
-// ===== 2. EDITAR DESCRIÇÃO DO GRUPO =====
-async function cmdSetGroupDesc(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG, verificarAdmin, isDono) {
-    // Verifica se é ADM
+// ==================== 2. MUDAR NOME DO GRUPO ====================
+async function cmdSetGroupName(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG, verificarAdmin, isDono) {
     const isAdmin = await verificarAdmin(sock, chat, sender);
     const isDonoBot = await isDono(sender);
-    
+
     if (!isAdmin && !isDonoBot) {
-        await enviarResposta(chat, sock, '🚫 Apenas administradores podem mudar a descrição do grupo!', msg);
+        await enviarResposta(chat, sock, '🚫 Apenas administradores ou dono!', msg);
+        return;
+    }
+
+    if (!chat.endsWith('@g.us')) {
+        await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
+        return;
+    }
+
+    let nome = args.join(' ').trim();
+
+    // 🔥 SE NÃO TIVER TEXTO, TENTA DA MENSAGEM RESPONDIDA
+    if (!nome) {
+        const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+        if (quoted) {
+            nome = quoted.conversation ||
+                quoted.extendedTextMessage?.text ||
+                quoted.imageMessage?.caption ||
+                '';
+            nome = nome.trim();
+        }
+    }
+
+    if (!nome) {
+        await enviarResposta(chat, sock,
+            `📝 Use: ${CONFIG.prefix}setnome <novo nome>
+📌 Ou responda uma mensagem com ${CONFIG.prefix}setnome
+
+⚠️ Máximo 25 caracteres`,
+            msg
+        );
+        return;
+    }
+
+    if (nome.length > 50) {
+        await enviarResposta(chat, sock, '❌ Nome muito longo! Máximo 50 caracteres.', msg);
+        return;
+    }
+
+    await reagir(sock, chat, msg.key.id, '⏳');
+
+    try {
+        await sock.groupUpdateSubject(chat, nome);
+
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ✅ *NOME ATUALIZADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 📛 Novo nome:
+┃ *${nome}*
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        await reagir(sock, chat, msg.key.id, '✅');
+
+    } catch (error) {
+        console.error('❌ Erro ao mudar nome:', error.message);
+
+        let msgErro = `❌ Erro: ${error.message}`;
+        if (error.message.includes('401') || error.message.includes('not-authorized')) {
+            msgErro = '❌ O bot precisa ser *ADMIN* do grupo!';
+        }
+
+        await enviarResposta(chat, sock, msgErro, msg);
+        await reagir(sock, chat, msg.key.id, '❌');
+    }
+}
+
+// ==================== 3. MUDAR DESCRIÇÃO ====================
+async function cmdSetGroupDesc(chat, sock, sender, msg, args, enviarResposta, reagir, CONFIG, verificarAdmin, isDono) {
+    const isAdmin = await verificarAdmin(sock, chat, sender);
+    const isDonoBot = await isDono(sender);
+
+    if (!isAdmin && !isDonoBot) {
+        await enviarResposta(chat, sock, '🚫 Apenas administradores ou dono!', msg);
+        return;
+    }
+
+    if (!chat.endsWith('@g.us')) {
+        await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
         return;
     }
 
     let descricao = args.join(' ').trim();
 
-    // Se não tiver texto, tenta pegar da mensagem respondida
     if (!descricao) {
         const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
         if (quoted) {
-            // Tenta pegar texto da mensagem respondida
-            descricao = quoted.conversation || 
-                        quoted.extendedTextMessage?.text || 
-                        quoted.imageMessage?.caption ||
-                        quoted.videoMessage?.caption ||
-                        '';
+            descricao = quoted.conversation ||
+                quoted.extendedTextMessage?.text ||
+                quoted.imageMessage?.caption ||
+                quoted.videoMessage?.caption ||
+                '';
+            descricao = descricao.trim();
         }
     }
 
     if (!descricao) {
-        await enviarResposta(chat, sock, `📝 Use: ${CONFIG.prefix}setdesc <descrição>\n📌 Ou responda uma mensagem com °setdesc`, msg);
+        await enviarResposta(chat, sock,
+            `📝 Use: ${CONFIG.prefix}setdesc <descrição>
+📌 Ou responda uma mensagem com ${CONFIG.prefix}setdesc
+
+⚠️ Máximo 512 caracteres`,
+            msg
+        );
         return;
     }
 
-    if (descricao.length > 500) {
-        await enviarResposta(chat, sock, '❌ Descrição muito longa! Máximo 500 caracteres.', msg);
+    if (descricao.length > 512) {
+        await enviarResposta(chat, sock, '❌ Descrição muito longa! Máximo 512 caracteres.', msg);
         return;
     }
 
@@ -96,18 +315,125 @@ async function cmdSetGroupDesc(chat, sock, sender, msg, args, enviarResposta, re
 
     try {
         await sock.groupUpdateDescription(chat, descricao);
-        
-        await enviarResposta(chat, sock, `✅ Descrição atualizada com sucesso!\n\n📝 ${descricao}`, msg);
+
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ ✅ *DESCRIÇÃO ATUALIZADA*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 📝 Nova descrição:
+┃ ${descricao}
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
         await reagir(sock, chat, msg.key.id, '✅');
 
-
     } catch (error) {
-        await enviarResposta(chat, sock, `❌ Erro ao atualizar descrição: ${error.message}`, msg);
+        console.error('❌ Erro ao mudar descrição:', error.message);
+
+        let msgErro = `❌ Erro: ${error.message}`;
+        if (error.message.includes('401') || error.message.includes('not-authorized')) {
+            msgErro = '❌ O bot precisa ser *ADMIN* do grupo!';
+        }
+
+        await enviarResposta(chat, sock, msgErro, msg);
         await reagir(sock, chat, msg.key.id, '❌');
     }
 }
 
-// ===== 3. VER INFORMAÇÕES COMPLETAS DO GRUPO =====
+// ==================== 4. RESETAR LINK DO GRUPO ====================
+async function cmdSetGroupLink(chat, sock, sender, msg, enviarResposta, reagir, CONFIG, verificarAdmin, isDono) {
+    const isAdmin = await verificarAdmin(sock, chat, sender);
+    const isDonoBot = await isDono(sender);
+
+    if (!isAdmin && !isDonoBot) {
+        await enviarResposta(chat, sock, '🚫 Apenas administradores ou dono!', msg);
+        return;
+    }
+
+    if (!chat.endsWith('@g.us')) {
+        await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
+        return;
+    }
+
+    await reagir(sock, chat, msg.key.id, '⏳');
+
+    try {
+        // 🔥 RESETA O LINK (revoga o antigo e gera novo)
+        const novoCode = await sock.groupRevokeInvite(chat);
+        const link = `https://chat.whatsapp.com/${novoCode}`;
+
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🔄 *LINK RESETADO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ 🔗 *Novo link:*
+┃ ${link}
+
+┃ ⚠️ O link antigo não
+┃ funciona mais!
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        await reagir(sock, chat, msg.key.id, '✅');
+
+    } catch (error) {
+        console.error('❌ Erro ao resetar link:', error.message);
+
+        let msgErro = `❌ Erro: ${error.message}`;
+        if (error.message.includes('401') || error.message.includes('not-authorized')) {
+            msgErro = '❌ O bot precisa ser *ADMIN* do grupo!';
+        }
+
+        await enviarResposta(chat, sock, msgErro, msg);
+        await reagir(sock, chat, msg.key.id, '❌');
+    }
+}
+
+// ==================== 5. VER LINK DO GRUPO ====================
+async function cmdGetGroupLink(chat, sock, sender, msg, enviarResposta, reagir, CONFIG, verificarAdmin, isDono) {
+    const isAdmin = await verificarAdmin(sock, chat, sender);
+    const isDonoBot = await isDono(sender);
+
+    if (!isAdmin && !isDonoBot) {
+        await enviarResposta(chat, sock, '🚫 Apenas administradores ou dono!', msg);
+        return;
+    }
+
+    if (!chat.endsWith('@g.us')) {
+        await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
+        return;
+    }
+
+    try {
+        const code = await sock.groupInviteCode(chat);
+        const link = `https://chat.whatsapp.com/${code}`;
+
+        await enviarResposta(chat, sock,
+            `╭━━━━━━━━━━━━━━━━━━━━━⬢
+┃ 🔗 *LINK DO GRUPO*
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+
+┃ ${link}
+
+╰━━━━━━━━━━━━━━━━━━━━━⬢
+『 ${CONFIG.botNome} 』`,
+            msg
+        );
+        await reagir(sock, chat, msg.key.id, '✅');
+
+    } catch (error) {
+        await enviarResposta(chat, sock, `❌ Erro: ${error.message}`, msg);
+        await reagir(sock, chat, msg.key.id, '❌');
+    }
+}
+
+// ==================== 6. INFO COMPLETA DO GRUPO ====================
 async function cmdGroupInfo(chat, sock, msg, db, enviarResposta, reagir, CONFIG) {
     if (!chat.endsWith('@g.us')) {
         await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
@@ -117,33 +443,25 @@ async function cmdGroupInfo(chat, sock, msg, db, enviarResposta, reagir, CONFIG)
     await reagir(sock, chat, msg.key.id, '📊');
 
     try {
-        // Pega informações do grupo
         const metadata = await sock.groupMetadata(chat);
         const participantes = metadata.participants || [];
-        
-        // Contagens
+
         const total = participantes.length;
         const admins = participantes.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
         const totalAdmins = admins.length;
         const membrosNormais = total - totalAdmins;
-        
-        // Tenta pegar a foto
+
         let fotoUrl = null;
         try {
             fotoUrl = await sock.profilePictureUrl(chat, 'image');
-        } catch (err) {
-            fotoUrl = null;
-        }
+        } catch (err) {}
 
-        // Pega descrição
         const descricao = metadata.desc || '📝 Sem descrição definida';
-        
-        // Pega data de criação
+
         const criadoEm = metadata.creation ? new Date(metadata.creation * 1000) : null;
         const dataCriacao = criadoEm ? criadoEm.toLocaleDateString('pt-BR') : 'N/A';
         const horaCriacao = criadoEm ? criadoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-        
-        // Calcula idade do grupo
+
         let idade = 'N/A';
         if (criadoEm) {
             const agora = new Date();
@@ -151,7 +469,7 @@ async function cmdGroupInfo(chat, sock, msg, db, enviarResposta, reagir, CONFIG)
             const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             const diffMeses = Math.floor(diffDias / 30);
             const diffAnos = Math.floor(diffDias / 365);
-            
+
             if (diffAnos > 0) {
                 idade = `${diffAnos} ano${diffAnos > 1 ? 's' : ''}`;
                 if (diffMeses % 12 > 0) idade += ` e ${diffMeses % 12} mês${diffMeses % 12 > 1 ? 'es' : ''}`;
@@ -163,19 +481,15 @@ async function cmdGroupInfo(chat, sock, msg, db, enviarResposta, reagir, CONFIG)
             }
         }
 
-        // Pega dono do grupo
         let dono = metadata.owner || 'N/A';
         const donoNome = dono !== 'N/A' ? dono.split('@')[0] : 'N/A';
 
-        // Status do grupo
         const status = metadata.announce ? '🔒 FECHADO (apenas ADMs)' : '🔓 ABERTO (todos)';
         const restrito = metadata.restrict ? '🔒 Restrito (apenas ADMs)' : '🔓 Livre (todos)';
 
-        // Verifica se o bot é admin
         const botIsAdmin = participantes.some(p => p.id === sock.user.id && p.admin);
         const botStatus = botIsAdmin ? '✅ Sim' : '❌ Não';
 
-        // Lista os administradores (máximo 10)
         let listaAdmins = '';
         const adminsExibidos = admins.slice(0, 10);
         for (const admin of adminsExibidos) {
@@ -185,52 +499,49 @@ async function cmdGroupInfo(chat, sock, msg, db, enviarResposta, reagir, CONFIG)
             listaAdmins += `┃ 📌 + ${admins.length - 10} outros ADMs\n`;
         }
 
-        // Tenta pegar as regras do banco de dados
         const regras = db.regras?.[chat] || '📜 Nenhuma regra definida. Use °setregras para definir.';
 
-        // Data atual
         const agora = new Date();
         const dataAtual = agora.toLocaleDateString('pt-BR');
         const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        // ===== CONSTRÓI A MENSAGEM =====
         let texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 📋 **INFORMAÇÕES DO GRUPO**
+┃ 📋 *INFORMAÇÕES DO GRUPO*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 
 ╭━━━━━━━━━━━━━⬢
-┃ 📛 **Nome:** ${metadata.subject || 'Sem nome'}
-┃ 🆔 **ID:** ${chat.split('@')[0]}
-┃ 👑 **Dono:** @${donoNome}
-┃ 📅 **Criado em:** ${dataCriacao} às ${horaCriacao}
-┃ ⏳ **Idade:** ${idade}
+┃ 📛 *Nome:* ${metadata.subject || 'Sem nome'}
+┃ 🆔 *ID:* ${chat.split('@')[0]}
+┃ 👑 *Dono:* @${donoNome}
+┃ 📅 *Criado em:* ${dataCriacao} às ${horaCriacao}
+┃ ⏳ *Idade:* ${idade}
 ╰━━━━━━━━━━━━━⬢
 
 ╭━━━━━━━━━━━━━⬢
-┃ 👥 **Participantes:** ${total}
-┃ 👑 **ADMs:** ${totalAdmins}
-┃ 👤 **Membros:** ${membrosNormais}
-┃ 🤖 **Bot é ADM:** ${botStatus}
+┃ 👥 *Participantes:* ${total}
+┃ 👑 *ADMs:* ${totalAdmins}
+┃ 👤 *Membros:* ${membrosNormais}
+┃ 🤖 *Bot é ADM:* ${botStatus}
 ╰━━━━━━━━━━━━━⬢
 
 ╭━━━━━━━━━━━━━⬢
-┃ 🔒 **Status:** ${status}
-┃ 🛡️ **Restrição:** ${restrito}
+┃ 🔒 *Status:* ${status}
+┃ 🛡️ *Restrição:* ${restrito}
 ╰━━━━━━━━━━━━━⬢
 
 ╭━━━━━━━━━━━━━⬢
-┃ 📜 **REGRAS:**
+┃ 📜 *REGRAS:*
 ┃ ${regras}
 ╰━━━━━━━━━━━━━⬢
 
 ╭━━━━━━━━━━━━━⬢
-┃ 📝 **DESCRIÇÃO:**
+┃ 📝 *DESCRIÇÃO:*
 ┃ ${descricao}
 ╰━━━━━━━━━━━━━⬢`;
 
         if (listaAdmins) {
             texto += `\n╭━━━━━━━━━━━━━⬢
-┃ 👑 **ADMINISTRADORES:**
+┃ 👑 *ADMINISTRADORES:*
 ${listaAdmins}╰━━━━━━━━━━━━━⬢`;
         }
 
@@ -238,15 +549,12 @@ ${listaAdmins}╰━━━━━━━━━━━━━⬢`;
 ╭━━━━━━━━━━━━━━━━━━━━━⬢
 ┃ 📅 ${dataAtual} | 🕐 ${horaAtual}
 ┃ 🤖 ${CONFIG.botNome}
-┃ 👑 ${CONFIG.donoOriginal}
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 『 ${CONFIG.botNome} 』`;
 
-        // Menciona administradores e dono
         const mentions = admins.map(a => a.id);
         if (dono !== 'N/A') mentions.push(dono);
 
-        // Envia com foto do grupo
         if (fotoUrl) {
             await sock.sendMessage(chat, {
                 image: { url: fotoUrl },
@@ -263,12 +571,12 @@ ${listaAdmins}╰━━━━━━━━━━━━━⬢`;
         await reagir(sock, chat, msg.key.id, '✅');
 
     } catch (error) {
-        await enviarResposta(chat, sock, `❌ Erro ao buscar informações: ${error.message}`, msg);
+        await enviarResposta(chat, sock, `❌ Erro: ${error.message}`, msg);
         await reagir(sock, chat, msg.key.id, '❌');
     }
 }
 
-// ===== 4. VER APENAS A DESCRIÇÃO =====
+// ==================== 7. VER DESCRIÇÃO ====================
 async function cmdGroupDesc(chat, sock, msg, enviarResposta, CONFIG) {
     if (!chat.endsWith('@g.us')) {
         await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
@@ -278,22 +586,22 @@ async function cmdGroupDesc(chat, sock, msg, enviarResposta, CONFIG) {
     try {
         const metadata = await sock.groupMetadata(chat);
         const descricao = metadata.desc || '📝 Sem descrição definida';
-        
+
         let fotoUrl = null;
         try {
             fotoUrl = await sock.profilePictureUrl(chat, 'image');
         } catch (err) {}
 
         const texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 📝 **DESCRIÇÃO DO GRUPO**
+┃ 📝 *DESCRIÇÃO DO GRUPO*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 
-🏠 **${metadata.subject || 'Sem nome'}**
+🏠 *${metadata.subject || 'Sem nome'}*
 
 ${descricao}
 
 ╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 📌 Use °setdesc para editar (ADM)
+┃ 📌 Use ${CONFIG.prefix}setdesc para editar (ADM)
 ┃ 🤖 ${CONFIG.botNome}
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 『 ${CONFIG.botNome} 』`;
@@ -312,8 +620,8 @@ ${descricao}
     }
 }
 
-// ===== 5. VER APENAS OS ADMINS =====
-async function cmdGroupAdmins(chat, sock, msg, enviarResposta) {
+// ==================== 8. VER ADMINISTRADORES ====================
+async function cmdGroupAdmins(chat, sock, msg, enviarResposta, CONFIG) {
     if (!chat.endsWith('@g.us')) {
         await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
         return;
@@ -323,17 +631,17 @@ async function cmdGroupAdmins(chat, sock, msg, enviarResposta) {
         const metadata = await sock.groupMetadata(chat);
         const participantes = metadata.participants || [];
         const admins = participantes.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
-        
+
         if (admins.length === 0) {
             await enviarResposta(chat, sock, '📊 Nenhum administrador encontrado!', msg);
             return;
         }
 
         let texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 👑 **ADMINISTRADORES**
+┃ 👑 *ADMINISTRADORES*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 
-🏠 **${metadata.subject || 'Sem         nome'}**
+🏠 *${metadata.subject || 'Sem nome'}*
 ┃ 📌 ${admins.length} ADMs\n`;
 
         for (const admin of admins) {
@@ -353,8 +661,8 @@ async function cmdGroupAdmins(chat, sock, msg, enviarResposta) {
     }
 }
 
-// ===== 6. VER TOTAL DE MEMBROS =====
-async function cmdGroupMembers(chat, sock, msg, enviarResposta) {
+// ==================== 9. VER MEMBROS ====================
+async function cmdGroupMembers(chat, sock, msg, enviarResposta, CONFIG) {
     if (!chat.endsWith('@g.us')) {
         await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
         return;
@@ -365,17 +673,17 @@ async function cmdGroupMembers(chat, sock, msg, enviarResposta) {
         const participantes = metadata.participants || [];
         const total = participantes.length;
         const admins = participantes.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
-        
+
         let fotoUrl = null;
         try {
             fotoUrl = await sock.profilePictureUrl(chat, 'image');
         } catch (err) {}
 
         const texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 👥 **MEMBROS DO GRUPO**
+┃ 👥 *MEMBROS DO GRUPO*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 
-🏠 **${metadata.subject || 'Sem nome'}**
+🏠 *${metadata.subject || 'Sem nome'}*
 
 ┃ 📌 Total: ${total} membros
 ┃ 👑 ADMs: ${admins.length}
@@ -398,7 +706,7 @@ async function cmdGroupMembers(chat, sock, msg, enviarResposta) {
     }
 }
 
-// ===== 7. VER ID DO GRUPO =====
+// ==================== 10. VER ID DO GRUPO ====================
 async function cmdGroupId(chat, sock, msg, enviarResposta, CONFIG) {
     if (!chat.endsWith('@g.us')) {
         await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
@@ -407,17 +715,17 @@ async function cmdGroupId(chat, sock, msg, enviarResposta, CONFIG) {
 
     try {
         const metadata = await sock.groupMetadata(chat);
-        
+
         let fotoUrl = null;
         try {
             fotoUrl = await sock.profilePictureUrl(chat, 'image');
         } catch (err) {}
 
         const texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 🆔 **ID DO GRUPO**
+┃ 🆔 *ID DO GRUPO*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 
-🏠 **${metadata.subject || 'Sem nome'}**
+🏠 *${metadata.subject || 'Sem nome'}*
 
 ┃ 📌 ID: ${chat}
 
@@ -438,7 +746,7 @@ async function cmdGroupId(chat, sock, msg, enviarResposta, CONFIG) {
     }
 }
 
-// ===== 8. VER DATA DE CRIAÇÃO DO GRUPO =====
+// ==================== 11. VER DATA DE CRIAÇÃO ====================
 async function cmdGroupCreated(chat, sock, msg, enviarResposta, CONFIG) {
     if (!chat.endsWith('@g.us')) {
         await enviarResposta(chat, sock, '📌 Este comando só funciona em grupos!', msg);
@@ -447,12 +755,11 @@ async function cmdGroupCreated(chat, sock, msg, enviarResposta, CONFIG) {
 
     try {
         const metadata = await sock.groupMetadata(chat);
-        
+
         const criadoEm = metadata.creation ? new Date(metadata.creation * 1000) : null;
         const dataCriacao = criadoEm ? criadoEm.toLocaleDateString('pt-BR') : 'N/A';
         const horaCriacao = criadoEm ? criadoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-        
-        // Calcula idade
+
         let idade = 'N/A';
         if (criadoEm) {
             const agora = new Date();
@@ -460,7 +767,7 @@ async function cmdGroupCreated(chat, sock, msg, enviarResposta, CONFIG) {
             const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             const diffMeses = Math.floor(diffDias / 30);
             const diffAnos = Math.floor(diffDias / 365);
-            
+
             if (diffAnos > 0) {
                 idade = `${diffAnos} ano${diffAnos > 1 ? 's' : ''}`;
                 if (diffMeses % 12 > 0) idade += ` e ${diffMeses % 12} mês${diffMeses % 12 > 1 ? 'es' : ''}`;
@@ -478,10 +785,10 @@ async function cmdGroupCreated(chat, sock, msg, enviarResposta, CONFIG) {
         } catch (err) {}
 
         const texto = `╭━━━━━━━━━━━━━━━━━━━━━⬢
-┃ 📅 **DATA DE CRIAÇÃO**
+┃ 📅 *DATA DE CRIAÇÃO*
 ╰━━━━━━━━━━━━━━━━━━━━━⬢
 
-🏠 **${metadata.subject || 'Sem nome'}**
+🏠 *${metadata.subject || 'Sem nome'}*
 
 ┃ 📅 Criado em: ${dataCriacao}
 ┃ 🕐 Horário: ${horaCriacao}
@@ -504,10 +811,13 @@ async function cmdGroupCreated(chat, sock, msg, enviarResposta, CONFIG) {
     }
 }
 
-// ===== EXPORTAR TODOS =====
+// ==================== EXPORTAR ====================
 module.exports = {
     cmdSetGroupPhoto,
+    cmdSetGroupName,
     cmdSetGroupDesc,
+    cmdSetGroupLink,
+    cmdGetGroupLink,
     cmdGroupInfo,
     cmdGroupDesc,
     cmdGroupAdmins,

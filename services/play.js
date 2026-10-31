@@ -1,5 +1,5 @@
 // ==================== PLAY - MÚSICAS (JU API) ====================
-// services/play.js - Versão PushName + CONFIG.botNome. Porque a outra tava um lixo de ruim
+// services/play.js - Versão com encaminhamento do canal
 // ============================================================
 
 const fetch = require('node-fetch');
@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { generateWAMessageContent, generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
 const { verificarApiConfigurada } = require('./apiError.js');
+const { pegarJidCanal, montarContextoEncaminhamento } = require('./canal.js');
 
 // ==================== CONFIGURAÇÃO ====================
 const TEMP_DIR = path.join(process.cwd(), 'temp');
@@ -29,12 +30,10 @@ const FRASES = [
 
 // ==================== FUNÇÕES AUXILIARES ====================
 
-// Frase aleatória
 function fraseAleatoria() {
     return FRASES[Math.floor(Math.random() * FRASES.length)];
 }
 
-// Formatar segundos para mm:ss ou hh:mm:ss
 function formatarDuracao(segundos) {
     if (!segundos || segundos <= 0) return '0:00';
     const horas = Math.floor(segundos / 3600);
@@ -44,15 +43,13 @@ function formatarDuracao(segundos) {
     return `${minutos}:${String(seg).padStart(2, '0')}`;
 }
 
-// Extrair ID do YouTube
 const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
 function extrairVideoId(url) {
     if (!url) return null;
     const match = url.match(YT_RE);
-    return match? match[1] : null;
+    return match ? match[1] : null;
 }
 
-// Pegar nick do usuário via PushName
 function pegarNomeExibido(msg) {
     try {
         if (msg.pushName && msg.pushName.trim()) {
@@ -64,7 +61,6 @@ function pegarNomeExibido(msg) {
     }
 }
 
-// Barra de progresso falsa estilo player
 function criarBarra(duracao) {
     const total = duracao || 180;
     const progresso = Math.floor(Math.random() * 30) + 35;
@@ -105,7 +101,6 @@ async function buscarMusicaAPI(query, CONFIG) {
         clearTimeout(timer);
     }
 
-    // Tratamento de erros HTTP
     if (response.status === 404) throw new Error('Música não encontrada, tente outro nome 🎵');
     if (response.status === 401 || response.status === 403) throw new Error('API Key inválida ou expirada');
     if (response.status === 429) throw new Error('Muitas buscas, aguarde um pouco');
@@ -118,7 +113,7 @@ async function buscarMusicaAPI(query, CONFIG) {
     let thumbnail = data.thumbnail;
     if (!thumbnail) {
         const videoId = extrairVideoId(data.url);
-        thumbnail = videoId? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg` : null;
+        thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg` : null;
     }
 
     return {
@@ -161,13 +156,13 @@ async function converterParaAudioWhatsApp(inputBuffer) {
 
         await new Promise((resolve, reject) => {
             const ffmpeg = spawn('ffmpeg', [
-                '-y','-hide_banner','-loglevel','error',
+                '-y', '-hide_banner', '-loglevel', 'error',
                 '-i', inputPath,
-                '-c:a','libopus','-b:a','64k','-ar','24000','-ac','1',
-                '-application','voip', outputPath
+                '-c:a', 'libopus', '-b:a', '64k', '-ar', '24000', '-ac', '1',
+                '-application', 'voip', outputPath
             ]);
             ffmpeg.on('error', reject);
-            ffmpeg.on('close', code => code === 0? resolve() : reject(new Error('FFmpeg falhou')));
+            ffmpeg.on('close', code => code === 0 ? resolve() : reject(new Error('FFmpeg falhou')));
         });
 
         const outputBuffer = await fs.promises.readFile(outputPath);
@@ -221,7 +216,7 @@ async function enviarCarrosselPlay(sock, chat, data, thumbBuffer, playerTexto, s
             footer: proto.Message.InteractiveMessage.Footer.create({ text: `💛 ${CONFIG.botNome}` }),
             header: proto.Message.InteractiveMessage.Header.create({
                 hasMediaAttachment: true,
-               ...(await generateWAMessageContent({ image: thumbBuffer }, { upload: sock.waUploadToServer }))
+                ...(await generateWAMessageContent({ image: thumbBuffer }, { upload: sock.waUploadToServer }))
             }),
             nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
                 buttons: [
@@ -262,17 +257,14 @@ async function enviarCarrosselPlay(sock, chat, data, thumbBuffer, playerTexto, s
 // ==================== COMANDO PRINCIPAL ====================
 
 async function cmdPlay(sock, chat, msg, args, enviarResposta, reagir, CONFIG) {
-    // Verifica se comando está ativo
     if (!CONFIG.comandos?.play) {
         await enviarResposta(chat, sock, '⛔ Comando desativado!', msg);
         return;
     }
 
-    // Verifica API configurada
     if (!(await verificarApiConfigurada(CONFIG, chat, sock, msg, enviarResposta, reagir))) return;
 
-    // Pega query
-    const query = Array.isArray(args)? args.join(' ').trim() : String(args || '').trim();
+    const query = Array.isArray(args) ? args.join(' ').trim() : String(args || '').trim();
     if (!query) {
         await enviarResposta(chat, sock, `🎵 Digite o nome da música!\n📌 Exemplo: ${CONFIG.prefix}play coldplay`, msg);
         return;
@@ -305,7 +297,7 @@ async function cmdPlay(sock, chat, msg, args, enviarResposta, reagir, CONFIG) {
             } catch (e) {}
         }
 
-        // Tenta carrossel, se falhar manda normal
+        // Tenta carrossel
         let enviado = false;
         if (thumbBuffer) enviado = await enviarCarrosselPlay(sock, chat, data, thumbBuffer, playerTexto, senderJid, CONFIG);
 
@@ -317,8 +309,28 @@ async function cmdPlay(sock, chat, msg, args, enviarResposta, reagir, CONFIG) {
             }
         }
 
-        // Envia áudio
-        await sock.sendMessage(chat, { audio: audioPtt, mimetype: 'audio/ogg; codecs=opus', ptt: true }, { quoted: msg });
+        // ============================================================
+        // 🔥 ENVIA O ÁUDIO COM CONTEXTO DE ENCAMINHAMENTO
+        // ============================================================
+        let contextInfo = {};
+
+        try {
+            const canalJid = await pegarJidCanal(sock, CONFIG);
+
+            if (canalJid) {
+                contextInfo = montarContextoEncaminhamento(canalJid, CONFIG.botNome);
+            }
+        } catch (e) {
+            console.error('❌ [PLAY] Erro no contexto:', e.message);
+        }
+
+        await sock.sendMessage(chat, {
+            audio: audioPtt,
+            mimetype: 'audio/ogg; codecs=opus',
+            ptt: true,
+            contextInfo: contextInfo  // 🔥 AQUI
+        }, { quoted: msg });
+
         await reagir(sock, chat, msg.key.id, '🎵');
 
     } catch (error) {
@@ -327,4 +339,13 @@ async function cmdPlay(sock, chat, msg, args, enviarResposta, reagir, CONFIG) {
     }
 }
 
-module.exports = { cmdPlay, buscarMusicaAPI, baixarAudio, converterParaAudioWhatsApp, enviarCarrosselPlay, pegarNomeExibido };
+module.exports = {
+    cmdPlay,
+    buscarMusicaAPI,
+    baixarAudio,
+    converterParaAudioWhatsApp,
+    enviarCarrosselPlay,
+    pegarNomeExibido,
+    pegarJidCanal,
+    montarContextoEncaminhamento
+};

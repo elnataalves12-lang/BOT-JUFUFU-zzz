@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const { pegarJidCanal, montarContextoEncaminhamento } = require('./canal.js');
 
 const execPromise = promisify(exec);
 
@@ -258,9 +259,17 @@ async function cmdEmojiMix(chat, sock, sender, msg, args, enviarResposta, reagir
         const stickerComExif = await addExif(stickerBuffer, nomePack, autor);
 
         // 🔥 ENVIA
-        await sock.sendMessage(chat, {
-            sticker: stickerComExif
-        }, { quoted: msg });
+       // 🔥 PEGA O JID DO CANAL (com cache)
+const canalJid = await pegarJidCanal(sock, CONFIG);
+
+// 🔥 MONTA O CONTEXTO DE ENCAMINHAMENTO
+const contextInfo = montarContextoEncaminhamento(canalJid, CONFIG.botNome);
+
+// 🔥 ENVIA COM O CONTEXTO
+await sock.sendMessage(chat, {
+    sticker: stickerComExif,
+    contextInfo: contextInfo  // 🔥 AQUI
+}, { quoted: msg });
 
         await reagir(sock, chat, msg.key.id, '✅');
 
