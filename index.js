@@ -2598,14 +2598,14 @@ else if (comando === 'resetwsaida' || comando === 'resetsaida') {
           await reagir(sock, chat, msgId, emojiSucesso);
         }
           else {
-          await enviarResposta(chat, sock, `╭━━━〔 ❌ 〕━━⬢
+    await enviarResposta(chat, sock, `╭━━━〔 ❌ 〕━━⬢
 ┃ Comando inválido.
 ┃
 ┃ 📖 ${CONFIG.prefix}menu
 ┃ 💬 wa.me/${CONFIG.donos[0]}
 ╰━━━━━━━━━━⬢`, msg);
-          await reagir(sock, chat, msgId, emojiErro);
-        }
+    await reagir(sock, chat, msgId, emojiErro);
+}
         
         await reagir(sock, chat, msgId, emojiSucesso);
       } catch (err) {

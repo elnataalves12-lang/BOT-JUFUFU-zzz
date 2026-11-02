@@ -81,6 +81,12 @@ async function cmdStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG
         const antiSticker = db.antiMidia?.[chat]?.sticker === true;
         const antiDocument = db.antiMidia?.[chat]?.document === true;
 
+        // VISUALIZAÇÃO ÚNICA
+        const visuUnica = db.visuUnica?.[chat] === true;
+
+        // BOT OFF
+        const botOff = db.botOff?.[chat] === true;
+
         // BAN POR FIGURINHA
         const banSticker = !!db.banSticker?.[chat]?.hash;
 
@@ -94,7 +100,7 @@ async function cmdStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG
         const semPrefixo = db.semPrefixo?.[chat] === true;
 
         // RPG
-        const rpgAtivo = db.rpgConfig?.[chat] !== false; // Padrão: true
+        const rpgAtivo = db.rpgConfig?.[chat] !== false;
 
         // AGENDAMENTOS
         const agendarFechar = db.agendamentos?.[chat]?.fechar?.ativo
@@ -132,6 +138,7 @@ async function cmdStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG
 ┃ 🏠 *${nomeGrupo}*
 ┃ 👥 *${totalMembros} membros*
 ┃ 🔒 *Status:* ${grupoFechado ? '🔐 FECHADO' : '🔓 ABERTO'}
+┃ 🤖 *Bot:* ${botOff ? '🔴 DESATIVADO' : '🟢 ATIVADO'}
 
 ╭━━━━━━━━━━━━━━━━━━━━━⬢
 ┃ 👋 *WELCOME*
@@ -159,6 +166,7 @@ async function cmdStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG
 ┃ ${emojiOnOff(antiVideo)} Anti-Vídeo
 ┃ ${emojiOnOff(antiSticker)} Anti-Sticker
 ┃ ${emojiOnOff(antiDocument)} Anti-Documento
+┃ ${emojiOnOff(visuUnica)} Visualização Única
 
 ╭━━━━━━━━━━━━━━━━━━━━━⬢
 ┃ 🎮 *DIVERSÃO*
@@ -200,13 +208,11 @@ async function cmdStatus(chat, sock, sender, msg, enviarResposta, reagir, CONFIG
             });
         }
 
-        // 🔥 SE NÃO TIVER CANAL, ENVIA COMO TEXTO NORMAL
         if (botoes.length === 0) {
             await enviarResposta(chat, sock, texto, msg);
             return;
         }
 
-        // 🔥 ENVIA COM BOTÃO
         const interactiveMessage = {
             body: { text: texto },
             footer: { text: botNome },
